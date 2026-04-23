@@ -59,11 +59,12 @@ function toggleSettings() {
 }
 
 function saveSettings() {
-  state.settings.ppdmHost = $('cfgPpdmHost').value.trim() || state.settings.ppdmHost;
-  state.settings.ppdmPort = $('cfgPpdmPort').value.trim() || state.settings.ppdmPort;
-  state.settings.esHost   = $('cfgEsHost').value.trim()   || state.settings.esHost;
-  state.settings.esPort   = $('cfgEsPort').value.trim()   || state.settings.esPort;
-  state.settings.esUser   = $('cfgEsUser').value.trim()   || state.settings.esUser;
+  state.settings.ppdmHost   = $('cfgPpdmHost').value.trim()   || state.settings.ppdmHost;
+  state.settings.ppdmPort   = $('cfgPpdmPort').value.trim()   || state.settings.ppdmPort;
+  state.settings.esHost     = $('cfgEsHost').value.trim()     || state.settings.esHost;
+  state.settings.esPort     = $('cfgEsPort').value.trim()     || state.settings.esPort;
+  state.settings.esUser     = $('cfgEsUser').value.trim()     || state.settings.esUser;
+  state.settings.nvidiaKey  = $('cfgNvidiaKey').value.trim()  || state.settings.nvidiaKey || '';
   addLog(`Settings saved — ES: ${state.settings.esHost}:${state.settings.esPort}`, 'info');
   toggleSettings();
 }
@@ -304,6 +305,146 @@ function clearLogs() {
   addLog('Log viewer cleared.', 'info');
 }
 
+/* ── AI Diagnose — NVIDIA NIM ─────────────────────────────── */
+
+function toggleAiPanel() {
+  const panel = $('aiDiagnosePanel');
+  const btn   = $('aiToggleBtn');
+  const open  = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  btn.textContent = open ? '▲ Collapse' : '▼ Expand';
+}
+
+function clearAiOutput() {
+  $('aiLogInput').value = '';
+  $('aiOutput').style.display = 'none';
+  $('aiOutputBody').textContent = '';
+  $('aiRedactedNote').textContent = '';
+}
+
+/**
+ * Redact PII using NVIDIA GLiNER-PII via the NIM API.
+ * Falls back to regex-based redaction if API call fails.
+ */
+async function redactPII(text, apiKey) {
+  // Regex fallback — always applied first for speed
+  let redacted = text
+    .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[IP]')
+    .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL]')
+    .replace(/\b(?:password|passwd|pwd|secret|token|key)\s*[:=]\s*\S+/gi, '[CREDENTIAL]=***');
+
+  try {
+    const resp = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'nvidia/gliner-pii',
+        messages: [{
+          role: 'user',
+          content: `Identify and redact all PII (names, IPs, emails, hostnames, credentials) in the following text. Replace each PII token with its category label in brackets. Return only the redacted text:\n\n${redacted}`,
+        }],
+        max_tokens: 2048,
+        temperature: 0,
+      }),
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      redacted = data.choices?.[0]?.message?.content || redacted;
+    }
+  } catch (_) {
+    // network error — regex redaction already applied
+  }
+  return redacted;
+}
+
+/**
+ * Call Nemotron 70B to diagnose the (redacted) log snippet.
+ */
+async function callNvidiaAPI(prompt, apiKey) {
+  const resp = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'nvidia/llama-3.1-nemotron-70b-instruct',
+      messages: [
+        {
+          role: 'system',
+          content: (
+            'You are an expert Dell EMC PowerProtect Data Manager (PPDM) and Elasticsearch administrator. '
+            + 'Analyse the provided log excerpt or symptom description and output:\n'
+            + '1. Root Cause: one sentence diagnosis\n'
+            + '2. Severity: Critical | High | Medium | Low\n'
+            + '3. Affected Component: which ES or PPDM subsystem\n'
+            + '4. Immediate Actions: numbered list of concrete remediation steps with exact CLI commands\n'
+            + '5. Prevention: 1-2 sentences on preventing recurrence\n\n'
+            + 'Be concise and precise. Use real PPDM/ES commands (mminfo, nsradmin, curl ES REST API, etc.).'
+          ),
+        },
+        { role: 'user', content: prompt },
+      ],
+      max_tokens: 1024,
+      temperature: 0.2,
+      stream: false,
+    }),
+  });
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error(`NVIDIA API ${resp.status}: ${err}`);
+  }
+  const data = await resp.json();
+  return data.choices?.[0]?.message?.content || '(no response)';
+}
+
+async function runAiDiagnose() {
+  const apiKey = state.settings.nvidiaKey || $('cfgNvidiaKey')?.value?.trim();
+  if (!apiKey) {
+    addLog('NVIDIA API key required — open Settings and enter your nvapi-… key.', 'error');
+    alert('Please enter your NVIDIA API key in Settings (⚙️) first.');
+    return;
+  }
+
+  const rawInput = $('aiLogInput').value.trim();
+  if (!rawInput) {
+    addLog('AI Diagnose: no input provided.', 'warn');
+    return;
+  }
+
+  const btn = $('aiDiagnoseBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Analysing…';
+  $('aiOutput').style.display = 'none';
+  addLog('AI Diagnose: redacting PII…', 'info');
+
+  try {
+    const redacted = await redactPII(rawInput, apiKey);
+    const piiCount = (rawInput.match(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g) || []).length
+                   + (rawInput.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/gi) || []).length;
+
+    addLog('AI Diagnose: calling Nemotron 70B for analysis…', 'info');
+    const diagnosis = await callNvidiaAPI(redacted, apiKey);
+
+    $('aiOutputBody').textContent = diagnosis;
+    $('aiRedactedNote').textContent = piiCount > 0
+      ? `ℹ️  ${piiCount} PII token(s) were automatically redacted before sending to the AI.`
+      : 'ℹ️  No PII patterns detected in the input.';
+    $('aiOutput').style.display = 'block';
+    addLog('AI Diagnose complete.', 'ok');
+  } catch (err) {
+    addLog(`AI Diagnose error: ${err.message}`, 'error');
+    $('aiOutputBody').textContent = `Error: ${err.message}`;
+    $('aiOutput').style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '🔍 Analyse with AI';
+  }
+}
+
 /* ── Init ─────────────────────────────────────────────────── */
 window.addEventListener('load', () => {
   addLog('PPDM Elasticsearch Troubleshooter initialized.', 'ok');
@@ -312,6 +453,7 @@ window.addEventListener('load', () => {
   addLog('Ready — run diagnostics or select an error pattern.', 'info');
 
   /* Prefill settings fields */
+  state.settings.nvidiaKey = '';
   const fields = { cfgPpdmHost: 'ppdmHost', cfgPpdmPort: 'ppdmPort',
                    cfgEsHost: 'esHost', cfgEsPort: 'esPort', cfgEsUser: 'esUser' };
   Object.entries(fields).forEach(([id, key]) => {

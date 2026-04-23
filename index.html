@@ -56,6 +56,10 @@
         <label>ES Password</label>
         <input type="password" id="cfgEsPass" placeholder="••••••••">
       </div>
+      <div class="settings-field" style="grid-column:1/-1;">
+        <label>NVIDIA API Key <span style="font-size:0.75rem;color:var(--muted);">(for AI Diagnose)</span></label>
+        <input type="password" id="cfgNvidiaKey" placeholder="nvapi-…">
+      </div>
     </div>
     <div class="action-buttons" style="margin-top:20px;">
       <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
@@ -359,6 +363,56 @@
     </div>
     <div class="log-viewer" id="logViewer">
       <div class="log-info log-line">[initializing] PPDM Elasticsearch Troubleshooter loading…</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       AI DIAGNOSE — NVIDIA NIM
+  ════════════════════════════════════════════════════════ -->
+  <div class="card fade-in" style="margin-bottom:20px;">
+    <div class="card-header">
+      <div class="card-icon" style="background:#e8eaf6;">🤖</div>
+      <div>
+        <div class="card-title">AI Diagnose</div>
+        <div class="card-subtitle">Natural language log analysis powered by NVIDIA NIM · Nemotron 70B + GLiNER PII</div>
+      </div>
+      <div style="margin-left:auto;">
+        <button class="btn btn-secondary" onclick="toggleAiPanel()" id="aiToggleBtn">▼ Expand</button>
+      </div>
+    </div>
+    <div id="aiDiagnosePanel" style="display:none; margin-top:16px;">
+      <div class="settings-grid" style="margin-bottom:16px;">
+        <div class="settings-field" style="grid-column:1/-1;">
+          <label>Paste log snippet or describe the symptom</label>
+          <textarea id="aiLogInput" rows="6" style="
+            width:100%; box-sizing:border-box; resize:vertical;
+            background:var(--code-bg); border:1px solid var(--border);
+            border-radius:8px; padding:12px; color:var(--text);
+            font-family:monospace; font-size:0.85rem; line-height:1.5;
+          " placeholder="Paste ES logs, error messages, or describe the problem in plain English…&#10;&#10;Example: [ERROR] master_not_discovered_exception after node restart&#10;Example: PPDM search indices stuck in red state, cannot delete"></textarea>
+        </div>
+      </div>
+      <div class="action-buttons">
+        <button class="btn btn-primary" onclick="runAiDiagnose()" id="aiDiagnoseBtn">
+          🔍 Analyse with AI
+        </button>
+        <button class="btn btn-secondary" onclick="clearAiOutput()">Clear</button>
+        <span style="font-size:0.78rem; color:var(--muted); margin-left:8px;">
+          PII is redacted before sending · requires NVIDIA API key in Settings
+        </span>
+      </div>
+      <div id="aiOutput" style="margin-top:20px; display:none;">
+        <div class="section-label">AI Analysis</div>
+        <div id="aiOutputBody" style="
+          background:var(--code-bg); border:1px solid var(--border);
+          border-radius:8px; padding:16px; white-space:pre-wrap;
+          font-size:0.88rem; line-height:1.6; color:var(--text);
+          max-height:420px; overflow-y:auto;
+        "></div>
+        <div id="aiRedactedNote" style="
+          margin-top:8px; font-size:0.78rem; color:var(--muted);
+        "></div>
+      </div>
     </div>
   </div>
 
