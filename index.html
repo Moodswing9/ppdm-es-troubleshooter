@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PPDM Elasticsearch Troubleshooter</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="container">
+
+  <!-- ══════════════════════════════════════════════════════
+       APP HEADER
+  ════════════════════════════════════════════════════════ -->
+  <header class="app-header">
+    <div class="app-header-left">
+      <h1>🔍 PPDM Elasticsearch Troubleshooter</h1>
+      <p>Comprehensive diagnostic tool for PowerProtect Data Manager search service issues</p>
+    </div>
+    <div class="app-header-right">
+      <span class="status-badge status-unknown" id="overallStatus">⬛ Not Checked</span>
+      <span class="header-badge">PPDM 19.15 · ES 8.11</span>
+      <button class="icon-btn" id="darkModeBtn" onclick="toggleDarkMode()" title="Toggle dark mode">🌙</button>
+      <button class="icon-btn" onclick="toggleSettings()" title="Connection settings">⚙️</button>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════════════════
+       SETTINGS PANEL
+  ════════════════════════════════════════════════════════ -->
+  <div class="settings-panel" id="settingsPanel">
+    <div class="settings-title">⚙️ Connection Settings</div>
+    <div class="settings-grid">
+      <div class="settings-field">
+        <label>PPDM Host / IP</label>
+        <input type="text" id="cfgPpdmHost" placeholder="192.168.1.50">
+      </div>
+      <div class="settings-field">
+        <label>PPDM Port</label>
+        <input type="text" id="cfgPpdmPort" placeholder="8443">
+      </div>
+      <div class="settings-field">
+        <label>Elasticsearch Host / IP</label>
+        <input type="text" id="cfgEsHost" placeholder="192.168.1.100">
+      </div>
+      <div class="settings-field">
+        <label>Elasticsearch Port</label>
+        <input type="text" id="cfgEsPort" placeholder="9200">
+      </div>
+      <div class="settings-field">
+        <label>ES Username</label>
+        <input type="text" id="cfgEsUser" placeholder="ppdm_search">
+      </div>
+      <div class="settings-field">
+        <label>ES Password</label>
+        <input type="password" id="cfgEsPass" placeholder="••••••••">
+      </div>
+    </div>
+    <div class="action-buttons" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+      <button class="btn btn-secondary" onclick="toggleSettings()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SYSTEM HEALTH OVERVIEW
+  ════════════════════════════════════════════════════════ -->
+  <div class="card fade-in" style="margin-bottom:20px;">
+    <div class="card-header">
+      <div class="card-icon" style="background:#e3f2fd;">📊</div>
+      <div>
+        <div class="card-title">System Health Overview</div>
+        <div class="card-subtitle">Real-time status of PPDM search infrastructure</div>
+      </div>
+    </div>
+
+    <div class="metric-grid">
+      <div class="metric-card">
+        <div class="metric-value" id="esNodes">—</div>
+        <div class="metric-label">ES Nodes</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" id="indexHealth">—</div>
+        <div class="metric-label">Index Health</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" id="lastBackup">—</div>
+        <div class="metric-label">Last Backup</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" id="queryRate">—</div>
+        <div class="metric-label">Query Rate</div>
+      </div>
+    </div>
+
+    <div class="action-buttons">
+      <button class="btn btn-primary" id="fullDiagBtn" onclick="runFullDiagnostics()">
+        <span id="fullDiagSpinner" class="spinner" style="display:none;"></span>
+        ▶ Run Full Diagnostics
+      </button>
+      <button class="btn btn-secondary" onclick="refreshMetrics()">🔄 Refresh Metrics</button>
+      <button class="btn btn-secondary" onclick="exportReport()">📥 Export JSON Report</button>
+      <button class="btn btn-secondary" onclick="printReport()">🖨️ Print Report</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       DIAGNOSTIC CARDS GRID
+  ════════════════════════════════════════════════════════ -->
+  <div class="grid">
+
+    <!-- Connection Diagnostics ─────────────────────────── -->
+    <div class="card fade-in">
+      <div class="card-header">
+        <div class="card-icon" style="background:#fce4ec;">🔌</div>
+        <div>
+          <div class="card-title">Connection Diagnostics</div>
+          <div class="card-subtitle">Network and service connectivity</div>
+        </div>
+      </div>
+
+      <!-- Network Connectivity -->
+      <div class="diagnostic-item" onclick="toggleDiagnostic(this)">
+        <div class="diagnostic-icon" style="background:#f3e5f5;">🌐</div>
+        <div class="diagnostic-content">
+          <div class="diagnostic-title">Network Connectivity</div>
+          <div class="diagnostic-desc">Check ES node reachability and port access</div>
+        </div>
+        <button class="check-btn" data-check="connectivity"
+                onclick="event.stopPropagation(); runCheck('connectivity')">Check</button>
+      </div>
+      <div class="progress-bar" id="progress-connectivity"><div class="progress-fill"></div></div>
+      <div class="result-panel" id="result-connectivity"></div>
+
+      <!-- Service Status -->
+      <div class="diagnostic-item" onclick="toggleDiagnostic(this)">
+        <div class="diagnostic-icon" style="background:#e8f5e9;">⚙️</div>
+        <div class="diagnostic-content">
+          <div class="diagnostic-title">Service Status</div>
+          <div class="diagnostic-desc">Verify Elasticsearch process and JVM health</div>
+        </div>
+        <button class="check-btn" data-check="service"
+                onclick="event.stopPropagation(); runCheck('service')">Check</button>
+      </div>
+      <div class="progress-bar" id="progress-service"><div class="progress-fill"></div></div>
+      <div class="result-panel" id="result-service"></div>
+
+      <!-- Authentication -->
+      <div class="diagnostic-item" onclick="toggleDiagnostic(this)">
+        <div class="diagnostic-icon" style="background:#fff3e0;">🔐</div>
+        <div class="diagnostic-content">
+          <div class="diagnostic-title">Authentication</div>
+          <div class="diagnostic-desc">Validate certificates, credentials, and roles</div>
+        </div>
+        <button class="check-btn" data-check="credentials"
+                onclick="event.stopPropagation(); runCheck('credentials')">Check</button>
+      </div>
+      <div class="progress-bar" id="progress-credentials"><div class="progress-fill"></div></div>
+      <div class="result-panel" id="result-credentials"></div>
+    </div>
+
+    <!-- Performance Analysis ───────────────────────────── -->
+    <div class="card fade-in">
+      <div class="card-header">
+        <div class="card-icon" style="background:#e0f2f1;">⚡</div>
+        <div>
+          <div class="card-title">Performance Analysis</div>
+          <div class="card-subtitle">Resource utilization and bottlenecks</div>
+        </div>
+      </div>
+
+      <!-- Memory -->
+      <div class="diagnostic-item" onclick="toggleDiagnostic(this)">
+        <div class="diagnostic-icon" style="background:#fce4ec;">🧠</div>
+        <div class="diagnostic-content">
+          <div class="diagnostic-title">Memory Pressure</div>
+          <div class="diagnostic-desc">JVM heap usage and GC performance</div>
+        </div>
+        <button class="check-btn" data-check="memory"
+                onclick="event.stopPropagation(); runCheck('memory')">Check</button>
+      </div>
+      <div class="progress-bar" id="progress-memory"><div class="progress-fill"></div></div>
+      <div class="result-panel" id="result-memory"></div>
+
+      <!-- Disk -->
+      <div class="diagnostic-item" onclick="toggleDiagnostic(this)">
+        <div class="diagnostic-icon" style="background:#e3f2fd;">💾</div>
+        <div class="diagnostic-content">
+          <div class="diagnostic-title">Disk Usage</div>
+          <div class="diagnostic-desc">Storage capacity and watermark thresholds</div>
+        </div>
+        <button class="check-btn" data-check="disk"
+                onclick="event.stopPropagation(); runCheck('disk')">Check</button>
+      </div>
+      <div class="progress-bar" id="progress-disk"><div class="progress-fill"></div></div>
+      <div class="result-panel" id="result-disk"></div>
+
+      <!-- Shards -->
+      <div class="diagnostic-item" onclick="toggleDiagnostic(this)">
+        <div class="diagnostic-icon" style="background:#f3e5f5;">🧩</div>
+        <div class="diagnostic-content">
+          <div class="diagnostic-title">Shard Distribution</div>
+          <div class="diagnostic-desc">Unassigned or relocating shards</div>
+        </div>
+        <button class="check-btn" data-check="shards"
+                onclick="event.stopPropagation(); runCheck('shards')">Check</button>
+      </div>
+      <div class="progress-bar" id="progress-shards"><div class="progress-fill"></div></div>
+      <div class="result-panel" id="result-shards"></div>
+    </div>
+
+    <!-- Data Integrity ─────────────────────────────────── -->
+    <div class="card fade-in">
+      <div class="card-header">
+        <div class="card-icon" style="background:#fff8e1;">🛡️</div>
+        <div>
+          <div class="card-title">Data Integrity</div>
+          <div class="card-subtitle">Index health and corruption checks</div>
+        </div>
+      </div>
+
+      <!-- Index Health -->
+      <div class="diagnostic-item" onclick="toggleDiagnostic(this)">
+        <div class="diagnostic-icon" style="background:#e8f5e9;">📁</div>
+        <div class="diagnostic-content">
+          <div class="diagnostic-title">Index Health</div>
+          <div class="diagnostic-desc">Red / Yellow index status resolution</div>
+        </div>
+        <button class="check-btn" data-check="indices"
+                onclick="event.stopPropagation(); runCheck('indices')">Check</button>
+      </div>
+      <div class="progress-bar" id="progress-indices"><div class="progress-fill"></div></div>
+      <div class="result-panel" id="result-indices"></div>
+
+      <!-- Corruption -->
+      <div class="diagnostic-item" onclick="toggleDiagnostic(this)">
+        <div class="diagnostic-icon" style="background:#ffebee;">🔍</div>
+        <div class="diagnostic-content">
+          <div class="diagnostic-title">Corruption Detection</div>
+          <div class="diagnostic-desc">Segment and translog file verification</div>
+        </div>
+        <button class="check-btn" data-check="corruption"
+                onclick="event.stopPropagation(); runCheck('corruption')">Check</button>
+      </div>
+      <div class="progress-bar" id="progress-corruption"><div class="progress-fill"></div></div>
+      <div class="result-panel" id="result-corruption"></div>
+    </div>
+
+    <!-- PPDM Integration ───────────────────────────────── -->
+    <div class="card fade-in">
+      <div class="card-header">
+        <div class="card-icon" style="background:#e1f5fe;">🎯</div>
+        <div>
+          <div class="card-title">PPDM Integration</div>
+          <div class="card-subtitle">PowerProtect-specific configurations</div>
+        </div>
+      </div>
+
+      <!-- PPDM Config -->
+      <div class="diagnostic-item" onclick="toggleDiagnostic(this)">
+        <div class="diagnostic-icon" style="background:#e3f2fd;">⚙️</div>
+        <div class="diagnostic-content">
+          <div class="diagnostic-title">Search Service Config</div>
+          <div class="diagnostic-desc">PPDM search service parameters and settings</div>
+        </div>
+        <button class="check-btn" data-check="ppdm-config"
+                onclick="event.stopPropagation(); runCheck('ppdm-config')">Check</button>
+      </div>
+      <div class="progress-bar" id="progress-ppdm-config"><div class="progress-fill"></div></div>
+      <div class="result-panel" id="result-ppdm-config"></div>
+
+      <!-- PPDM Logs -->
+      <div class="diagnostic-item" onclick="toggleDiagnostic(this)">
+        <div class="diagnostic-icon" style="background:#fff3e0;">📋</div>
+        <div class="diagnostic-content">
+          <div class="diagnostic-title">PPDM Log Analysis</div>
+          <div class="diagnostic-desc">Search service and application log review</div>
+        </div>
+        <button class="check-btn" data-check="ppdm-logs"
+                onclick="event.stopPropagation(); runCheck('ppdm-logs')">Check</button>
+      </div>
+      <div class="progress-bar" id="progress-ppdm-logs"><div class="progress-fill"></div></div>
+      <div class="result-panel" id="result-ppdm-logs"></div>
+    </div>
+
+  </div><!-- /.grid -->
+
+  <!-- ══════════════════════════════════════════════════════
+       GUIDED RESOLUTION WORKFLOW
+  ════════════════════════════════════════════════════════ -->
+  <div class="card fade-in" style="margin-bottom:20px;">
+    <div class="card-header">
+      <div class="card-icon" style="background:#e8f5e9;">🛠️</div>
+      <div>
+        <div class="card-title">Guided Resolution Workflow</div>
+        <div class="card-subtitle">Step-by-step remediation based on detected issues</div>
+      </div>
+    </div>
+
+    <div class="timeline" id="resolutionTimeline">
+
+      <!-- Step 1: Select Error Pattern -->
+      <div class="timeline-item" id="step1">
+        <h4 style="margin-bottom:10px;">Step 1 — Identify Error Pattern</h4>
+        <p style="color:#888; font-size:0.88rem; margin-bottom:12px;">
+          Select the error type you are experiencing to load targeted remediation steps:
+        </p>
+        <div>
+          <span class="tag tag-info error-tag" data-pattern="connection"
+                onclick="selectErrorPattern('connection')">🔌 Connection Refused</span>
+          <span class="tag tag-info error-tag" data-pattern="timeout"
+                onclick="selectErrorPattern('timeout')">⏱️ Timeout</span>
+          <span class="tag tag-danger error-tag" data-pattern="auth"
+                onclick="selectErrorPattern('auth')">🔐 Authentication Failed</span>
+          <span class="tag tag-caution error-tag" data-pattern="memory"
+                onclick="selectErrorPattern('memory')">🧠 Out of Memory</span>
+          <span class="tag tag-caution error-tag" data-pattern="disk"
+                onclick="selectErrorPattern('disk')">💾 Disk Full</span>
+          <span class="tag tag-danger error-tag" data-pattern="red"
+                onclick="selectErrorPattern('red')">🔴 Red Cluster Status</span>
+          <span class="tag tag-info error-tag" data-pattern="search"
+                onclick="selectErrorPattern('search')">🔍 Search Query Failed</span>
+        </div>
+      </div>
+
+      <!-- Step 2: Diagnostic Results -->
+      <div class="timeline-item" id="step2" style="opacity:0.45;">
+        <h4 style="margin-bottom:10px;">Step 2 — Diagnostic Results</h4>
+        <div id="diagnosticResults" style="color:#888; font-size:0.88rem;">
+          Run the diagnostic checks above to populate results here…
+        </div>
+      </div>
+
+      <!-- Step 3: Remediation Actions -->
+      <div class="timeline-item" id="step3" style="opacity:0.45;">
+        <h4 style="margin-bottom:12px;">Step 3 — Remediation Actions</h4>
+        <div id="remediationActions" style="color:#888; font-size:0.88rem;">
+          Select an error pattern in Step 1 to load remediation guidance…
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       LIVE LOG STREAM
+  ════════════════════════════════════════════════════════ -->
+  <div class="card fade-in">
+    <div class="card-header">
+      <div class="card-icon" style="background:#263238; color:white;">📜</div>
+      <div>
+        <div class="card-title">Live Log Stream</div>
+        <div class="card-subtitle">Diagnostic activity and PPDM search service events</div>
+      </div>
+      <div style="margin-left:auto; display:flex; gap:8px;">
+        <button class="btn btn-secondary" onclick="clearLogs()" style="font-size:0.82rem; padding:6px 14px;">Clear</button>
+      </div>
+    </div>
+    <div class="log-viewer" id="logViewer">
+      <div class="log-info log-line">[initializing] PPDM Elasticsearch Troubleshooter loading…</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       FOOTER
+  ════════════════════════════════════════════════════════ -->
+  <footer>
+    PPDM Elasticsearch Troubleshooter &nbsp;|&nbsp; Built for Dell PowerProtect Data Manager &nbsp;|&nbsp;
+    Simulated diagnostics — connect to live APIs by pointing
+    <code>state.settings.esHost</code> at your ES cluster.
+  </footer>
+
+</div><!-- /.container -->
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
