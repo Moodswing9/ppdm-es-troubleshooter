@@ -14,6 +14,14 @@
 
 ---
 
+<div align="center">
+
+![PPDM Elasticsearch Troubleshooter dashboard](docs/screenshot.png)
+
+</div>
+
+---
+
 ## Overview
 
 A fully self-contained, browser-based diagnostic tool built for engineers and administrators working with **Dell PowerProtect Data Manager (PPDM)** and its embedded Elasticsearch service. No installation, no backend, no build step — open `index.html` and start diagnosing.
