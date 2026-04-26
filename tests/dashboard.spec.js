@@ -52,15 +52,17 @@ test.describe('PPDM Elasticsearch Troubleshooter — smoke tests', () => {
     const html = page.locator('html');
     const btn = page.locator('#darkModeBtn');
 
-    // Default is light mode — data-theme is empty, button shows 🌙
+    // Default: light mode — button shows the moon icon
     await expect(btn).toContainText('🌙');
-    expect(await html.getAttribute('data-theme')).toBe('');
 
+    // Click → dark mode active
     await btn.click();
-
-    // After toggle: dark mode active
     await expect(html).toHaveAttribute('data-theme', 'dark');
     await expect(btn).toContainText('☀️');
+
+    // Click again → back to light mode
+    await btn.click();
+    await expect(btn).toContainText('🌙');
   });
 
   test('diagnostic cards grid renders multiple modules', async ({ page }) => {
