@@ -9,6 +9,7 @@
 [![Status](https://img.shields.io/badge/status-stable-22c55e?style=flat-square)](#)
 [![No Dependencies](https://img.shields.io/badge/dependencies-none-f59e0b?style=flat-square)](#)
 [![Open in Browser](https://img.shields.io/badge/open-in%20browser-0ea5e9?style=flat-square)](#getting-started)
+[![NVIDIA NIM](https://img.shields.io/badge/NVIDIA-NIM-76b900?style=flat-square)](#-ai-diagnose-nvidia-nim)
 
 </div>
 
@@ -68,6 +69,36 @@ Each workflow delivers **severity-rated**, step-by-step remediation with one-cli
 | ⚙️ Settings Panel | Configure PPDM host, ES host / port, and credentials |
 | 📥 JSON Export | Download a full diagnostic snapshot as `.json` |
 | 🖨️ Print / PDF | Dedicated print stylesheet for clean report output |
+| 🤖 AI Diagnose | Paste a log excerpt; get root cause + remediation steps from Nemotron 70B |
+
+---
+
+## 🤖 AI Diagnose (NVIDIA NIM)
+
+Paste any PPDM or Elasticsearch log excerpt, error message, or symptom description into the **AI Diagnose** panel and get a structured analysis back — root cause, severity, affected component, exact remediation commands, and prevention guidance.
+
+### Pipeline
+
+| Step | Model | Purpose |
+|:--|:--|:--|
+| 1. **Local regex pass** | — | Strip IPs, emails, and `password=…` style tokens before anything leaves the browser |
+| 2. **PII redaction** | `nvidia/gliner-pii` | NER-grade PII detection for hostnames, names, identifiers (with regex fallback if the API is unreachable) |
+| 3. **Diagnosis** | `nvidia/llama-3.1-nemotron-70b-instruct` | Returns root cause · severity · affected component · numbered remediation steps with real CLI commands · prevention notes |
+
+### Privacy
+
+- Raw log text **never leaves the browser unredacted** — regex redaction runs first; only the redacted version is sent to NIM
+- The dashboard is fully client-side. No backend, no telemetry, no server logs
+- Your NVIDIA API key is stored in browser `localStorage` only
+
+### Usage
+
+1. Click ⚙️ → paste your `nvapi-…` key into the **NVIDIA API Key** field → Save
+2. Open the AI Diagnose panel (▼ Expand)
+3. Paste your log excerpt
+4. Click **Analyse** — typical round-trip is 3–6 seconds
+
+The diagnosis output includes copy-pasteable PPDM/ES CLI commands (`mminfo`, `nsradmin`, `curl` against the ES REST API, etc.) so you can act immediately.
 
 ---
 
