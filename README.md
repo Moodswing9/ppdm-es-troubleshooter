@@ -92,10 +92,41 @@ ppdm-es-troubleshooter/
 ├── index.html              # Application shell and UI markup
 ├── css/
 │   └── styles.css          # Design system — dark mode, print, responsive layout
-└── js/
-    ├── data.js             # Diagnostic scenarios and error pattern definitions
-    └── app.js              # Application logic, state management, and export
+├── js/
+│   ├── data.js             # Diagnostic scenarios and error pattern definitions
+│   └── app.js              # Application logic, state management, and export
+├── tests/
+│   └── dashboard.spec.js   # Playwright smoke tests (Chromium · Firefox · WebKit)
+├── playwright.config.js    # Test runner config — runs against local http-server
+└── .github/workflows/
+    └── playwright.yml      # CI — runs full test matrix on every PR
 ```
+
+---
+
+## Tests
+
+The dashboard ships with a Playwright smoke-test suite covering page load, the four health-overview metric cards, settings panel, dark mode toggle, diagnostic card rendering, export/print buttons, and zero-console-errors. Tests run on Chromium, Firefox, and WebKit.
+
+```bash
+# One-time setup
+npm install
+npx playwright install
+
+# Run tests headless
+npm test
+
+# Watch tests run in a real browser
+npm run test:headed
+
+# Step through with the inspector
+npm run test:debug
+
+# Open the last HTML report
+npm run test:report
+```
+
+CI runs the full matrix on every push and PR — see `.github/workflows/playwright.yml`. HTML reports are uploaded as artifacts on every run.
 
 ---
 
