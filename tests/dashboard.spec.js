@@ -48,17 +48,19 @@ test.describe('PPDM Elasticsearch Troubleshooter — smoke tests', () => {
     await expect(page.locator('#cfgEsPort')).toBeVisible();
   });
 
-  test('dark mode toggle changes the page theme', async ({ page }) => {
-    const beforeBg = await page.evaluate(() =>
-      getComputedStyle(document.body).backgroundColor
-    );
-    await page.locator('#darkModeBtn').click();
-    // Allow any CSS transition to complete
-    await page.waitForTimeout(200);
-    const afterBg = await page.evaluate(() =>
-      getComputedStyle(document.body).backgroundColor
-    );
-    expect(afterBg).not.toBe(beforeBg);
+  test('dark mode toggle flips data-theme attribute and button label', async ({ page }) => {
+    const html = page.locator('html');
+    const btn = page.locator('#darkModeBtn');
+
+    // Default is light mode — data-theme is empty, button shows 🌙
+    await expect(btn).toContainText('🌙');
+    expect(await html.getAttribute('data-theme')).toBe('');
+
+    await btn.click();
+
+    // After toggle: dark mode active
+    await expect(html).toHaveAttribute('data-theme', 'dark');
+    await expect(btn).toContainText('☀️');
   });
 
   test('diagnostic cards grid renders multiple modules', async ({ page }) => {
