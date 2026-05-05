@@ -57,8 +57,8 @@
         <input type="password" id="cfgEsPass" placeholder="••••••••">
       </div>
       <div class="settings-field" style="grid-column:1/-1;">
-        <label>NVIDIA API Key <span style="font-size:0.75rem;color:var(--muted);">(for AI Diagnose)</span></label>
-        <input type="password" id="cfgNvidiaKey" placeholder="nvapi-…">
+        <label>Anthropic API Key <span style="font-size:0.75rem;color:var(--muted);">(for AI Diagnose)</span></label>
+        <input type="password" id="cfgAnthropicKey" placeholder="sk-ant-…">
       </div>
     </div>
     <div class="action-buttons" style="margin-top:20px;">
@@ -367,14 +367,14 @@
   </div>
 
   <!-- ══════════════════════════════════════════════════════
-       AI DIAGNOSE — NVIDIA NIM
+       AI DIAGNOSE — CLAUDE HAIKU 4.5
   ════════════════════════════════════════════════════════ -->
   <div class="card fade-in" style="margin-bottom:20px;">
     <div class="card-header">
       <div class="card-icon" style="background:#e8eaf6;">🤖</div>
       <div>
         <div class="card-title">AI Diagnose</div>
-        <div class="card-subtitle">Natural language log analysis powered by NVIDIA NIM · Nemotron 70B + GLiNER PII</div>
+        <div class="card-subtitle">Natural language log analysis powered by Claude Haiku 4.5 · regex PII redaction</div>
       </div>
       <div style="margin-left:auto;">
         <button class="btn btn-secondary" onclick="toggleAiPanel()" id="aiToggleBtn">▼ Expand</button>
@@ -398,7 +398,7 @@
         </button>
         <button class="btn btn-secondary" onclick="clearAiOutput()">Clear</button>
         <span style="font-size:0.78rem; color:var(--muted); margin-left:8px;">
-          PII is redacted before sending · requires NVIDIA API key in Settings
+          PII is redacted before sending · requires Anthropic API key in Settings
         </span>
       </div>
       <div id="aiOutput" style="margin-top:20px; display:none;">
