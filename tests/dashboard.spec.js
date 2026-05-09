@@ -87,4 +87,41 @@ test.describe('PPDM Elasticsearch Troubleshooter — smoke tests', () => {
     await page.waitForLoadState('networkidle');
     expect(errors).toEqual([]);
   });
+
+  test('selecting an error pattern loads severity badge and remediation commands', async ({ page }) => {
+    await page.locator('[data-pattern="connection"]').click();
+    const actions = page.locator('#remediationActions');
+    await expect(actions).toContainText('Connection Refused');
+    await expect(actions).toContainText('systemctl status elasticsearch');
+    await expect(actions).toContainText('HIGH SEVERITY');
+  });
+
+  test('running a single diagnostic check shows a result panel', async ({ page }) => {
+    await page.locator('[data-check="corruption"]').click();
+    await expect(page.locator('#result-corruption')).toHaveClass(/show/, { timeout: 4000 });
+    await expect(page.locator('#result-corruption')).toContainText('Diagnostic Results');
+  });
+
+  test('re-running a check replaces Step 2 entry rather than duplicating it', async ({ page }) => {
+    const checkBtn = page.locator('[data-check="shards"]');
+
+    await checkBtn.click();
+    await expect(checkBtn).toBeEnabled({ timeout: 4000 });
+
+    await checkBtn.click();
+    await expect(checkBtn).toBeEnabled({ timeout: 4000 });
+
+    await expect(page.locator('[data-check-type="shards"]')).toHaveCount(1);
+  });
+
+  test('redactPII strips Bearer tokens, JSON credentials, and Basic auth headers', async ({ page }) => {
+    const results = await page.evaluate(() => [
+      redactPII('Bearer eyJhbGciOiJIUzI1NiJ9.payload.sig'),
+      redactPII('"password":"s3cr3t!"'),
+      redactPII('Authorization: Basic dXNlcjpwYXNz'),
+    ]);
+    expect(results[0]).toBe('Bearer [TOKEN]');
+    expect(results[1]).toBe('"[CREDENTIAL_KEY]":"***"');
+    expect(results[2]).toBe('Authorization: Basic [REDACTED]');
+  });
 });

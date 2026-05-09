@@ -15,7 +15,8 @@ const state = {
     ppdmPort: '8443',
     esHost:   '192.168.1.100',
     esPort:   '9200',
-    esUser:   'ppdm_search'
+    esUser:   'ppdm_search',
+    esPass:   ''
   }
 };
 
@@ -64,6 +65,7 @@ function saveSettings() {
   state.settings.esHost     = $('cfgEsHost').value.trim()     || state.settings.esHost;
   state.settings.esPort     = $('cfgEsPort').value.trim()     || state.settings.esPort;
   state.settings.esUser     = $('cfgEsUser').value.trim()     || state.settings.esUser;
+  state.settings.esPass     = $('cfgEsPass').value.trim()     || state.settings.esPass     || '';
   state.settings.anthropicKey = $('cfgAnthropicKey').value.trim() || state.settings.anthropicKey || '';
   addLog(`Settings saved — ES: ${state.settings.esHost}:${state.settings.esPort}`, 'info');
   toggleSettings();
@@ -246,11 +248,16 @@ function updateWorkflowStep2(type, critical, hasIssue) {
   const status = critical ? 'CRITICAL' : hasIssue ? 'WARNING' : 'HEALTHY';
   const label  = diagnosticScenarios[type]?.label || type;
 
-  $('diagnosticResults').innerHTML += `
-    <div style="margin:5px 0; padding:8px 12px; background:${color}18; border-radius:8px; border-left:3px solid ${color};">
-      <strong>${label}:</strong>
-      <span style="color:${color}; font-weight:700; margin-left:6px;">${status}</span>
-    </div>`;
+  const container = $('diagnosticResults');
+  let entry = container.querySelector(`[data-check-type="${type}"]`);
+  if (!entry) {
+    if (!container.querySelector('[data-check-type]')) container.textContent = '';
+    entry = document.createElement('div');
+    entry.dataset.checkType = type;
+    container.appendChild(entry);
+  }
+  entry.style.cssText = `margin:5px 0; padding:8px 12px; background:${color}18; border-radius:8px; border-left:3px solid ${color};`;
+  entry.innerHTML = `<strong>${label}:</strong><span style="color:${color}; font-weight:700; margin-left:6px;">${status}</span>`;
 }
 
 /* ── Export ───────────────────────────────────────────────── */
@@ -260,7 +267,7 @@ function exportReport() {
   const report = {
     metadata: {
       generatedAt: new Date().toISOString(),
-      tool:        'PPDM ES Troubleshooter v1.0',
+      tool:        'PPDM ES Troubleshooter v1.1.0',
       ppdmHost:    state.settings.ppdmHost,
       esHost:      state.settings.esHost,
       esPort:      state.settings.esPort
@@ -326,7 +333,10 @@ function redactPII(text) {
   return text
     .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[IP]')
     .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[EMAIL]')
-    .replace(/\b(?:password|passwd|pwd|secret|token|key)\s*[:=]\s*\S+/gi, '[CREDENTIAL]=***');
+    .replace(/\b(?:password|passwd|pwd|secret|token|key)\s*[:=]\s*\S+/gi, '[CREDENTIAL]=***')
+    .replace(/Bearer\s+[A-Za-z0-9\-._~+/]+=*/g, 'Bearer [TOKEN]')
+    .replace(/"(?:password|passwd|pwd|secret|token|key)"\s*:\s*"[^"]*"/gi, '"[CREDENTIAL_KEY]":"***"')
+    .replace(/Authorization:\s*Basic\s+[A-Za-z0-9+/]+=*/gi, 'Authorization: Basic [REDACTED]');
 }
 
 async function callClaudeAPI(prompt, apiKey) {
