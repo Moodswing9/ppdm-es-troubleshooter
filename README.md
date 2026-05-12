@@ -4,7 +4,7 @@
 
 **Interactive diagnostic dashboard for PowerProtect Data Manager Elasticsearch access errors**
 
-[![Version](https://img.shields.io/badge/version-1.1.0-6366f1?style=flat-square)](https://github.com/Moodswing9/ppdm-es-troubleshooter/releases)
+[![Version](https://img.shields.io/badge/version-1.2.0-6366f1?style=flat-square)](https://github.com/Moodswing9/ppdm-es-troubleshooter/releases)
 [![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-ef4444?style=flat-square)](#license)
 [![Status](https://img.shields.io/badge/status-stable-22c55e?style=flat-square)](#)
 [![No Dependencies](https://img.shields.io/badge/dependencies-none-f59e0b?style=flat-square)](#)
@@ -66,7 +66,7 @@ Each workflow delivers **severity-rated**, step-by-step remediation with one-cli
 |:---|:---|
 | 🌙 Dark Mode | Full light / dark theme toggle |
 | 📜 Live Log Stream | Timestamped real-time diagnostic activity viewer |
-| ⚙️ Settings Panel | Configure PPDM host, ES host / port, and credentials |
+| ⚙️ Settings Panel | Configure PPDM host, ES host / port, and credentials — **connection settings persist across page reloads** via `localStorage` |
 | 📥 JSON Export | Download a full diagnostic snapshot as `.json` |
 | 🖨️ Print / PDF | Dedicated print stylesheet for clean report output |
 | 🤖 AI Diagnose | One-click AI analysis powered by **Claude Haiku 4.5** — paste your error, get a root cause summary and remediation steps (requires Anthropic API key, set in ⚙️ Settings) |
@@ -88,7 +88,8 @@ Paste any PPDM or Elasticsearch log excerpt, error message, or symptom descripti
 
 - Raw log text **never leaves the browser unredacted** — regex redaction runs synchronously before the API call
 - The dashboard is fully client-side. No backend, no telemetry, no server logs
-- Your Anthropic API key is stored in browser `localStorage` only
+- Your Anthropic API key is held **in memory only** and is never written to `localStorage` or any storage
+- Connection settings (host, port, ES username) are saved to `localStorage` for convenience; passwords and API keys are intentionally excluded
 
 ### Usage
 
