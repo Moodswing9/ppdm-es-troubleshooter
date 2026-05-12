@@ -54,19 +54,36 @@ function copyToClipboard(el) {
 }
 
 /* ── Settings Panel ───────────────────────────────────────── */
+const LS_KEY = 'ppdmEsTroubleshooter.settings';
+
+function persistSettings() {
+  const { ppdmHost, ppdmPort, esHost, esPort, esUser } = state.settings;
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({ ppdmHost, ppdmPort, esHost, esPort, esUser }));
+  } catch (_) { /* storage unavailable — proceed without */ }
+}
+
+function restoreSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+    if (saved) Object.assign(state.settings, saved);
+  } catch (_) { /* corrupt entry — ignore */ }
+}
+
 function toggleSettings() {
   const panel = $('settingsPanel');
   panel.classList.toggle('open');
 }
 
 function saveSettings() {
-  state.settings.ppdmHost   = $('cfgPpdmHost').value.trim()   || state.settings.ppdmHost;
-  state.settings.ppdmPort   = $('cfgPpdmPort').value.trim()   || state.settings.ppdmPort;
-  state.settings.esHost     = $('cfgEsHost').value.trim()     || state.settings.esHost;
-  state.settings.esPort     = $('cfgEsPort').value.trim()     || state.settings.esPort;
-  state.settings.esUser     = $('cfgEsUser').value.trim()     || state.settings.esUser;
-  state.settings.esPass     = $('cfgEsPass').value.trim()     || state.settings.esPass     || '';
+  state.settings.ppdmHost     = $('cfgPpdmHost').value.trim()     || state.settings.ppdmHost;
+  state.settings.ppdmPort     = $('cfgPpdmPort').value.trim()     || state.settings.ppdmPort;
+  state.settings.esHost       = $('cfgEsHost').value.trim()       || state.settings.esHost;
+  state.settings.esPort       = $('cfgEsPort').value.trim()       || state.settings.esPort;
+  state.settings.esUser       = $('cfgEsUser').value.trim()       || state.settings.esUser;
+  state.settings.esPass       = $('cfgEsPass').value.trim()       || state.settings.esPass       || '';
   state.settings.anthropicKey = $('cfgAnthropicKey').value.trim() || state.settings.anthropicKey || '';
+  persistSettings();
   addLog(`Settings saved — ES: ${state.settings.esHost}:${state.settings.esPort}`, 'info');
   toggleSettings();
 }
@@ -340,36 +357,46 @@ function redactPII(text) {
 }
 
 async function callClaudeAPI(prompt, apiKey) {
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      system: (
-        'You are an expert Dell EMC PowerProtect Data Manager (PPDM) and Elasticsearch administrator. '
-        + 'Analyse the provided log excerpt or symptom description and output:\n'
-        + '1. Root Cause: one sentence diagnosis\n'
-        + '2. Severity: Critical | High | Medium | Low\n'
-        + '3. Affected Component: which ES or PPDM subsystem\n'
-        + '4. Immediate Actions: numbered list of concrete remediation steps with exact CLI commands\n'
-        + '5. Prevention: 1-2 sentences on preventing recurrence\n\n'
-        + 'Be concise and precise. Use real PPDM/ES commands (mminfo, nsradmin, curl ES REST API, etc.).'
-      ),
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  });
-  if (!resp.ok) {
-    const err = await resp.text();
-    throw new Error(`Claude API ${resp.status}: ${err}`);
+  const controller = new AbortController();
+  const timeoutId  = setTimeout(() => controller.abort(), 30_000);
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      signal: controller.signal,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        system: (
+          'You are an expert Dell EMC PowerProtect Data Manager (PPDM) and Elasticsearch administrator. '
+          + 'Analyse the provided log excerpt or symptom description and output:\n'
+          + '1. Root Cause: one sentence diagnosis\n'
+          + '2. Severity: Critical | High | Medium | Low\n'
+          + '3. Affected Component: which ES or PPDM subsystem\n'
+          + '4. Immediate Actions: numbered list of concrete remediation steps with exact CLI commands\n'
+          + '5. Prevention: 1-2 sentences on preventing recurrence\n\n'
+          + 'Be concise and precise. Use real PPDM/ES commands (mminfo, nsradmin, curl ES REST API, etc.).'
+        ),
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+    if (!resp.ok) {
+      const err = await resp.text();
+      throw new Error(`Claude API ${resp.status}: ${err}`);
+    }
+    const data = await resp.json();
+    return data.content?.[0]?.text || '(no response)';
+  } catch (err) {
+    if (err.name === 'AbortError') throw new Error('Request timed out after 30 seconds.');
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
-  const data = await resp.json();
-  return data.content?.[0]?.text || '(no response)';
 }
 
 async function runAiDiagnose() {
@@ -418,13 +445,14 @@ async function runAiDiagnose() {
 
 /* ── Init ─────────────────────────────────────────────────── */
 window.addEventListener('load', () => {
+  restoreSettings();
+
   addLog('PPDM Elasticsearch Troubleshooter initialized.', 'ok');
   addLog(`Target ES: ${state.settings.esHost}:${state.settings.esPort}`, 'info');
   addLog(`Target PPDM: ${state.settings.ppdmHost}:${state.settings.ppdmPort}`, 'info');
   addLog('Ready — run diagnostics or select an error pattern.', 'info');
 
-  /* Prefill settings fields */
-  state.settings.anthropicKey = '';
+  /* Prefill settings fields with persisted (or default) values */
   const fields = { cfgPpdmHost: 'ppdmHost', cfgPpdmPort: 'ppdmPort',
                    cfgEsHost: 'esHost', cfgEsPort: 'esPort', cfgEsUser: 'esUser' };
   Object.entries(fields).forEach(([id, key]) => {
