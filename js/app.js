@@ -443,6 +443,89 @@ async function runAiDiagnose() {
   }
 }
 
+/* ── Live ES Cluster Health ───────────────────────────────── */
+async function fetchLiveEsHealth() {
+  const { esHost, esPort, esUser, esPass } = state.settings;
+  const btn = $('liveCheckBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
+  addLog(`Live ES health check → http://${esHost}:${esPort}/_cluster/health`, 'info');
+
+  try {
+    const url = `http://${esHost}:${esPort}/_cluster/health`;
+    const headers = { 'Accept': 'application/json' };
+    if (esUser && esPass) {
+      headers['Authorization'] = 'Basic ' + btoa(`${esUser}:${esPass}`);
+    }
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), 10_000);
+    let resp;
+    try {
+      resp = await fetch(url, { method: 'GET', headers, signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    if (!resp.ok) {
+      throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
+    }
+    const data = await resp.json();
+
+    /* Map ES status → metric cards */
+    const statusMap = { green: 'GREEN', yellow: 'YELLOW', red: 'RED' };
+    const classMap  = { green: 'ok',    yellow: 'warn',    red: 'critical' };
+    const emojiMap  = { green: '🟢',    yellow: '🟡',      red: '🔴' };
+    const badgeMap  = { green: 'status-healthy', yellow: 'status-warning', red: 'status-critical' };
+
+    const s = data.status || 'unknown';
+
+    const indexVal   = $('indexHealth');
+    const esNodes    = $('esNodes');
+    const statusBadge = $('overallStatus');
+
+    if (indexVal) {
+      indexVal.textContent = statusMap[s] || s.toUpperCase();
+      indexVal.className   = `metric-value ${classMap[s] || ''}`;
+    }
+    if (esNodes) {
+      const total  = data.number_of_nodes || '?';
+      const active = data.number_of_data_nodes || total;
+      esNodes.textContent = `${active} / ${total}`;
+      esNodes.className   = 'metric-value ok';
+    }
+    if (statusBadge) {
+      statusBadge.className   = `status-badge ${badgeMap[s] || 'status-unknown'}`;
+      statusBadge.textContent = `${emojiMap[s] || '⬛'} ES ${statusMap[s] || s.toUpperCase()}`;
+    }
+
+    const lv = s === 'red' ? 'error' : s === 'yellow' ? 'warn' : 'ok';
+    addLog(
+      `ES cluster: status=${s.toUpperCase()}, nodes=${data.number_of_nodes}, `
+      + `active_shards=${data.active_shards}, unassigned=${data.unassigned_shards}`,
+      lv
+    );
+    if (data.unassigned_shards > 0) {
+      addLog(`⚠ ${data.unassigned_shards} unassigned shard(s) — run diagnostics for details`, 'warn');
+    }
+    if (data.relocating_shards > 0) {
+      addLog(`ℹ ${data.relocating_shards} shard(s) relocating (cluster rebalancing)`, 'info');
+    }
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      addLog(`Live ES check timed out after 10 s — verify ES host/port in Settings`, 'error');
+    } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+      addLog(
+        `Live ES check: CORS blocked or unreachable. ` +
+        `To allow browser access, add: http.cors.enabled: true / http.cors.allow-origin: "*" to elasticsearch.yml`,
+        'warn'
+      );
+    } else {
+      addLog(`Live ES check failed: ${err.message}`, 'error');
+    }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '⚡ Live ES Check'; }
+  }
+}
+
 /* ── Init ─────────────────────────────────────────────────── */
 window.addEventListener('load', () => {
   restoreSettings();

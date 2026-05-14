@@ -103,6 +103,7 @@
         <span id="fullDiagSpinner" class="spinner" style="display:none;"></span>
         ▶ Run Full Diagnostics
       </button>
+      <button class="btn btn-secondary" id="liveCheckBtn" onclick="fetchLiveEsHealth()" title="Fetch live /_cluster/health from your ES instance">⚡ Live ES Check</button>
       <button class="btn btn-secondary" onclick="refreshMetrics()">🔄 Refresh Metrics</button>
       <button class="btn btn-secondary" onclick="exportReport()">📥 Export JSON Report</button>
       <button class="btn btn-secondary" onclick="printReport()">🖨️ Print Report</button>
