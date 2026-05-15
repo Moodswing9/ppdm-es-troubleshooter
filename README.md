@@ -4,7 +4,7 @@
 
 **Interactive diagnostic dashboard for PowerProtect Data Manager Elasticsearch access errors**
 
-[![Version](https://img.shields.io/badge/version-1.2.0-6366f1?style=flat-square)](https://github.com/Moodswing9/ppdm-es-troubleshooter/releases)
+[![Version](https://img.shields.io/badge/version-1.3.0-6366f1?style=flat-square)](https://github.com/Moodswing9/ppdm-es-troubleshooter/releases)
 [![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-ef4444?style=flat-square)](#license)
 [![Status](https://img.shields.io/badge/status-stable-22c55e?style=flat-square)](#)
 [![No Dependencies](https://img.shields.io/badge/dependencies-none-f59e0b?style=flat-square)](#)
