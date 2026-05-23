@@ -11,12 +11,13 @@ const state = {
   selectedError: null,
   darkMode:      false,
   settings: {
-    ppdmHost: '192.168.1.50',
-    ppdmPort: '8443',
-    esHost:   '192.168.1.100',
-    esPort:   '9200',
-    esUser:   'ppdm_search',
-    esPass:   ''
+    ppdmHost:   '192.168.1.50',
+    ppdmPort:   '8443',
+    esHost:     '192.168.1.100',
+    esPort:     '9200',
+    esProtocol: 'http',
+    esUser:     'ppdm_search',
+    esPass:     ''
   }
 };
 
@@ -57,9 +58,9 @@ function copyToClipboard(el) {
 const LS_KEY = 'ppdmEsTroubleshooter.settings';
 
 function persistSettings() {
-  const { ppdmHost, ppdmPort, esHost, esPort, esUser } = state.settings;
+  const { ppdmHost, ppdmPort, esHost, esPort, esProtocol, esUser } = state.settings;
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify({ ppdmHost, ppdmPort, esHost, esPort, esUser }));
+    localStorage.setItem(LS_KEY, JSON.stringify({ ppdmHost, ppdmPort, esHost, esPort, esProtocol, esUser }));
   } catch (_) { /* storage unavailable — proceed without */ }
 }
 
@@ -80,11 +81,12 @@ function saveSettings() {
   state.settings.ppdmPort     = $('cfgPpdmPort').value.trim()     || state.settings.ppdmPort;
   state.settings.esHost       = $('cfgEsHost').value.trim()       || state.settings.esHost;
   state.settings.esPort       = $('cfgEsPort').value.trim()       || state.settings.esPort;
+  state.settings.esProtocol   = $('cfgEsProtocol').value          || 'http';
   state.settings.esUser       = $('cfgEsUser').value.trim()       || state.settings.esUser;
   state.settings.esPass       = $('cfgEsPass').value.trim()       || state.settings.esPass       || '';
   state.settings.anthropicKey = $('cfgAnthropicKey').value.trim() || state.settings.anthropicKey || '';
   persistSettings();
-  addLog(`Settings saved — ES: ${state.settings.esHost}:${state.settings.esPort}`, 'info');
+  addLog(`Settings saved — ES: ${state.settings.esProtocol}://${state.settings.esHost}:${state.settings.esPort}`, 'info');
   toggleSettings();
 }
 
@@ -356,6 +358,23 @@ function redactPII(text) {
     .replace(/Authorization:\s*Basic\s+[A-Za-z0-9+/]+=*/gi, 'Authorization: Basic [REDACTED]');
 }
 
+const _AI_SCHEMA = {
+  name: 'ppdm_es_diagnosis',
+  description: 'Structured PPDM/ES root-cause diagnosis',
+  input_schema: {
+    type: 'object',
+    properties: {
+      root_cause:        { type: 'string', description: 'One-sentence root cause diagnosis' },
+      severity:         { type: 'string', enum: ['Critical', 'High', 'Medium', 'Low'] },
+      affected_component: { type: 'string', description: 'ES or PPDM subsystem affected' },
+      actions:          { type: 'array', items: { type: 'string' },
+                          description: 'Numbered remediation steps with exact CLI commands' },
+      prevention:       { type: 'string', description: '1–2 sentences on preventing recurrence' },
+    },
+    required: ['root_cause', 'severity', 'affected_component', 'actions', 'prevention'],
+  },
+};
+
 async function callClaudeAPI(prompt, apiKey) {
   const controller = new AbortController();
   const timeoutId  = setTimeout(() => controller.abort(), 30_000);
@@ -374,14 +393,12 @@ async function callClaudeAPI(prompt, apiKey) {
         max_tokens: 1024,
         system: (
           'You are an expert Dell EMC PowerProtect Data Manager (PPDM) and Elasticsearch administrator. '
-          + 'Analyse the provided log excerpt or symptom description and output:\n'
-          + '1. Root Cause: one sentence diagnosis\n'
-          + '2. Severity: Critical | High | Medium | Low\n'
-          + '3. Affected Component: which ES or PPDM subsystem\n'
-          + '4. Immediate Actions: numbered list of concrete remediation steps with exact CLI commands\n'
-          + '5. Prevention: 1-2 sentences on preventing recurrence\n\n'
-          + 'Be concise and precise. Use real PPDM/ES commands (mminfo, nsradmin, curl ES REST API, etc.).'
+          + 'Analyse the provided log excerpt or symptom description. '
+          + 'You MUST call the ppdm_es_diagnosis tool with your structured analysis. '
+          + 'Use real PPDM/ES commands (mminfo, nsradmin, curl ES REST API, etc.) in the actions array.'
         ),
+        tools: [_AI_SCHEMA],
+        tool_choice: { type: 'tool', name: 'ppdm_es_diagnosis' },
         messages: [{ role: 'user', content: prompt }],
       }),
     });
@@ -390,13 +407,61 @@ async function callClaudeAPI(prompt, apiKey) {
       throw new Error(`Claude API ${resp.status}: ${err}`);
     }
     const data = await resp.json();
-    return data.content?.[0]?.text || '(no response)';
+    const toolUse = data.content?.find(b => b.type === 'tool_use');
+    if (toolUse?.input) return toolUse.input;
+    // Fallback — model returned text instead of tool call
+    return { root_cause: data.content?.[0]?.text || '(no response)',
+             severity: 'Unknown', affected_component: 'Unknown', actions: [], prevention: '' };
   } catch (err) {
     if (err.name === 'AbortError') throw new Error('Request timed out after 30 seconds.');
     throw err;
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+function _severityColor(sev) {
+  const map = { Critical: '#ef4444', High: '#f97316', Medium: '#f59e0b', Low: '#22c55e' };
+  return map[sev] || 'var(--muted)';
+}
+
+function _renderDiagnosisCards(d) {
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const sev = d.severity || 'Unknown';
+  const color = _severityColor(sev);
+
+  const actionsHtml = (d.actions || []).map((a, i) => `
+    <div style="display:flex; gap:8px; align-items:flex-start; margin-bottom:6px;">
+      <span style="min-width:20px; font-weight:600; color:var(--muted)">${i + 1}.</span>
+      <code class="copy-cmd" style="
+        flex:1; display:block; background:var(--code-bg); border:1px solid var(--border);
+        border-radius:4px; padding:6px 10px; font-size:0.82rem; cursor:pointer;
+        white-space:pre-wrap; word-break:break-all;"
+        data-cmd="${esc(a)}"
+        onclick="copyToClipboard(this)"
+        title="Click to copy">${esc(a)}</code>
+    </div>`).join('');
+
+  return `
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="background:${color}; color:#fff; border-radius:4px;
+          padding:2px 10px; font-size:0.8rem; font-weight:700; letter-spacing:.04em;">${esc(sev)}</span>
+        <span style="font-weight:600; color:var(--text)">${esc(d.affected_component || '')}</span>
+      </div>
+      <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:8px; padding:14px;">
+        <div style="font-size:0.75rem; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:4px;">Root Cause</div>
+        <div style="color:var(--text); line-height:1.5">${esc(d.root_cause || '')}</div>
+      </div>
+      ${actionsHtml ? `<div style="background:var(--card-bg); border:1px solid var(--border); border-radius:8px; padding:14px;">
+        <div style="font-size:0.75rem; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:10px;">Immediate Actions <span style="font-weight:400; font-size:0.7rem">(click to copy)</span></div>
+        ${actionsHtml}
+      </div>` : ''}
+      ${d.prevention ? `<div style="background:var(--card-bg); border:1px solid var(--border); border-radius:8px; padding:14px;">
+        <div style="font-size:0.75rem; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:4px;">Prevention</div>
+        <div style="color:var(--text); line-height:1.5">${esc(d.prevention)}</div>
+      </div>` : ''}
+    </div>`;
 }
 
 async function runAiDiagnose() {
@@ -425,9 +490,9 @@ async function runAiDiagnose() {
                    + (rawInput.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/gi) || []).length;
 
     addLog('AI Diagnose: calling Claude Haiku 4.5 for analysis…', 'info');
-    const diagnosis = await callClaudeAPI(redacted, apiKey);
+    const diag = await callClaudeAPI(redacted, apiKey);
 
-    $('aiOutputBody').textContent = diagnosis;
+    $('aiOutputBody').innerHTML = _renderDiagnosisCards(diag);
     $('aiRedactedNote').textContent = piiCount > 0
       ? `ℹ️  ${piiCount} PII token(s) were automatically redacted before sending to the AI.`
       : 'ℹ️  No PII patterns detected in the input.';
@@ -435,7 +500,7 @@ async function runAiDiagnose() {
     addLog('AI Diagnose complete.', 'ok');
   } catch (err) {
     addLog(`AI Diagnose error: ${err.message}`, 'error');
-    $('aiOutputBody').textContent = `Error: ${err.message}`;
+    $('aiOutputBody').innerHTML = `<p style="color:var(--danger)">Error: ${err.message}</p>`;
     $('aiOutput').style.display = 'block';
   } finally {
     btn.disabled = false;
@@ -445,13 +510,14 @@ async function runAiDiagnose() {
 
 /* ── Live ES Cluster Health ───────────────────────────────── */
 async function fetchLiveEsHealth() {
-  const { esHost, esPort, esUser, esPass } = state.settings;
+  const { esHost, esPort, esProtocol, esUser, esPass } = state.settings;
+  const proto = esProtocol || 'http';
   const btn = $('liveCheckBtn');
   if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
-  addLog(`Live ES health check → http://${esHost}:${esPort}/_cluster/health`, 'info');
+  addLog(`Live ES health check → ${proto}://${esHost}:${esPort}/_cluster/health`, 'info');
 
   try {
-    const url = `http://${esHost}:${esPort}/_cluster/health`;
+    const url = `${proto}://${esHost}:${esPort}/_cluster/health`;
     const headers = { 'Accept': 'application/json' };
     if (esUser && esPass) {
       headers['Authorization'] = 'Basic ' + btoa(`${esUser}:${esPass}`);
@@ -542,4 +608,6 @@ window.addEventListener('load', () => {
     const el = $(id);
     if (el) el.value = state.settings[key];
   });
+  const protoEl = $('cfgEsProtocol');
+  if (protoEl) protoEl.value = state.settings.esProtocol || 'http';
 });

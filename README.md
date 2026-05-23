@@ -4,7 +4,7 @@
 
 **Interactive diagnostic dashboard for PowerProtect Data Manager Elasticsearch access errors**
 
-[![Version](https://img.shields.io/badge/version-1.3.0-6366f1?style=flat-square)](https://github.com/Moodswing9/ppdm-es-troubleshooter/releases)
+[![Version](https://img.shields.io/badge/version-1.4.0-6366f1?style=flat-square)](https://github.com/Moodswing9/ppdm-es-troubleshooter/releases)
 [![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-ef4444?style=flat-square)](#license)
 [![Status](https://img.shields.io/badge/status-stable-22c55e?style=flat-square)](#)
 [![No Dependencies](https://img.shields.io/badge/dependencies-none-f59e0b?style=flat-square)](#)
@@ -69,7 +69,8 @@ Each workflow delivers **severity-rated**, step-by-step remediation with one-cli
 | ⚙️ Settings Panel | Configure PPDM host, ES host / port, and credentials — **connection settings persist across page reloads** via `localStorage` |
 | 📥 JSON Export | Download a full diagnostic snapshot as `.json` |
 | 🖨️ Print / PDF | Dedicated print stylesheet for clean report output |
-| 🤖 AI Diagnose | One-click AI analysis powered by **Claude Haiku 4.5** — paste your error, get a root cause summary and remediation steps (requires Anthropic API key, set in ⚙️ Settings) |
+| ⚡ Live ES Check | Fetches `/_cluster/health` directly from your ES instance — updates the health metrics cards in real time |
+| 🤖 AI Diagnose | One-click AI analysis powered by **Claude Haiku 4.5** — structured JSON output rendered as styled cards: severity badge, affected component, click-to-copy remediation commands, and prevention guidance (requires Anthropic API key) |
 
 ---
 
@@ -82,7 +83,8 @@ Paste any PPDM or Elasticsearch log excerpt, error message, or symptom descripti
 | Step | Purpose |
 |:--|:--|
 | 1. **Regex PII redaction** | Strip IPs, emails, and `password=…` style tokens before anything leaves the browser |
-| 2. **Diagnosis** | `claude-haiku-4-5-20251001` returns root cause · severity · affected component · numbered remediation steps · prevention notes |
+| 2. **Structured diagnosis** | `claude-haiku-4-5-20251001` is forced via tool-calling to return a JSON object: `root_cause`, `severity`, `affected_component`, `actions[]`, `prevention` |
+| 3. **Styled card rendering** | Output rendered as cards — severity badge (color-coded), affected component label, copy-pasteable action code blocks, prevention panel |
 
 ### Privacy
 
@@ -99,6 +101,26 @@ Paste any PPDM or Elasticsearch log excerpt, error message, or symptom descripti
 4. Click **Analyse** — typical round-trip is 2–4 seconds
 
 The diagnosis output includes copy-pasteable PPDM/ES CLI commands (`mminfo`, `nsradmin`, `curl` against the ES REST API, etc.) so you can act immediately.
+
+---
+
+## Claude Code Plugin
+
+Install as a Claude Code plugin to get `/es-diagnose` directly in your terminal:
+
+```bash
+npx skills add Moodswing9/ppdm-es-troubleshooter -g
+```
+
+This registers the skill and command globally so you can run `/es-diagnose` from any Claude Code session.
+
+| Command | What it does |
+|:---|:---|
+| `/es-diagnose "connection refused to elasticsearch:9200"` | Diagnose inline error text |
+| `/es-diagnose /var/log/ppdm/es-error.log` | Analyse a log file |
+| `/es-diagnose es-error.log es-slow.log` | Concatenate multiple log files for combined diagnosis |
+
+The skill auto-activates in Claude Code when you ask about PPDM Elasticsearch errors, shard allocation, circuit breakers, disk watermarks, or the diagnostic dashboard's architecture — no command needed. Requires `ANTHROPIC_API_KEY` and `pip install anthropic`.
 
 ---
 

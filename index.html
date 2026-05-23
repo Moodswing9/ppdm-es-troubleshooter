@@ -20,6 +20,7 @@
     </div>
     <div class="app-header-right">
       <span class="status-badge status-unknown" id="overallStatus">⬛ Not Checked</span>
+      <span class="header-badge" style="background:#d97706;color:#fff;" title="Diagnostic checks return simulated results. Use Live ES Check for real connectivity.">SIMULATED</span>
       <span class="header-badge">PPDM 19.15 · ES 8.11</span>
       <button class="icon-btn" id="darkModeBtn" onclick="toggleDarkMode()" title="Toggle dark mode">🌙</button>
       <button class="icon-btn" onclick="toggleSettings()" title="Connection settings">⚙️</button>
@@ -47,6 +48,13 @@
       <div class="settings-field">
         <label>Elasticsearch Port</label>
         <input type="text" id="cfgEsPort" placeholder="9200">
+      </div>
+      <div class="settings-field">
+        <label>ES Protocol</label>
+        <select id="cfgEsProtocol" style="width:100%;padding:8px;background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;">
+          <option value="http">HTTP</option>
+          <option value="https">HTTPS</option>
+        </select>
       </div>
       <div class="settings-field">
         <label>ES Username</label>
@@ -405,10 +413,9 @@
       <div id="aiOutput" style="margin-top:20px; display:none;">
         <div class="section-label">AI Analysis</div>
         <div id="aiOutputBody" style="
-          background:var(--code-bg); border:1px solid var(--border);
-          border-radius:8px; padding:16px; white-space:pre-wrap;
+          border-radius:8px;
           font-size:0.88rem; line-height:1.6; color:var(--text);
-          max-height:420px; overflow-y:auto;
+          max-height:480px; overflow-y:auto;
         "></div>
         <div id="aiRedactedNote" style="
           margin-top:8px; font-size:0.78rem; color:var(--muted);

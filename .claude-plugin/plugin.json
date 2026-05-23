@@ -1,0 +1,29 @@
+{
+  "name": "ppdm-es-troubleshooter",
+  "version": "1.4.0",
+  "description": "PPDM Elasticsearch diagnostics in your terminal — /es-diagnose delivers structured root-cause analysis with severity, remediation commands, and prevention guidance via Claude Haiku. Browser dashboard included.",
+  "author": {
+    "name": "Moodswing9",
+    "url": "https://github.com/Moodswing9"
+  },
+  "homepage": "https://github.com/Moodswing9/ppdm-es-troubleshooter",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Moodswing9/ppdm-es-troubleshooter.git"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "keywords": [
+    "dell-emc",
+    "ppdm",
+    "powerprotect",
+    "elasticsearch",
+    "diagnostics",
+    "troubleshooter",
+    "backup",
+    "claude-skill"
+  ],
+  "components": {
+    "skills": ["./skills/ppdm-es-troubleshooter"],
+    "commands": ["./.claude/commands"]
+  }
+}

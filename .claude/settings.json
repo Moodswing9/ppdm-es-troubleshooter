@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/post_edit.py",
+            "timeout": 90,
+            "statusMessage": "Validating JS changes..."
+          }
+        ]
+      }
+    ]
+  }
+}

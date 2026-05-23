@@ -44,11 +44,11 @@ const state = {
   checkResults: {},          // type → {scenario, critical, hasIssue}
   selectedError: null,       // active error pattern
   darkMode: false,
-  settings: { ppdmHost, ppdmPort, esHost, esPort, esUser, anthropicKey }
+  settings: { ppdmHost, ppdmPort, esHost, esPort, esUser, esProtocol, anthropicKey }
 };
 ```
 
-Settings are in-memory only — no localStorage persistence.
+Settings (except `anthropicKey`) are persisted in localStorage under `ppdmEsTroubleshooter.settings` and restored on page load.
 
 ### Key Functions
 
