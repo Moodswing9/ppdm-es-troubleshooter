@@ -4,8 +4,9 @@
 
 **Interactive diagnostic dashboard for PowerProtect Data Manager Elasticsearch access errors**
 
-[![Version](https://img.shields.io/badge/version-1.4.0-6366f1?style=flat-square)](https://github.com/Moodswing9/ppdm-es-troubleshooter/releases)
-[![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-ef4444?style=flat-square)](#license)
+[![Version](https://img.shields.io/badge/version-1.3.0-6366f1?style=flat-square)](https://github.com/Moodswing9/ppdm-es-troubleshooter/releases)
+[![License](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/Moodswing9/ppdm-es-troubleshooter/playwright.yml?branch=master&style=flat-square&label=CI)](https://github.com/Moodswing9/ppdm-es-troubleshooter/actions/workflows/playwright.yml)
 [![Status](https://img.shields.io/badge/status-stable-22c55e?style=flat-square)](#)
 [![No Dependencies](https://img.shields.io/badge/dependencies-none-f59e0b?style=flat-square)](#)
 [![Open in Browser](https://img.shields.io/badge/open-in%20browser-0ea5e9?style=flat-square)](#getting-started)
@@ -185,9 +186,7 @@ CI runs the full matrix on every push and PR — see `.github/workflows/playwrig
 
 ## License
 
-Copyright (c) 2026 Timur Poyraz. All rights reserved.
-
-No part of this software may be reproduced, distributed, or modified in any form or by any means without express written permission from the copyright holder.
+This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
