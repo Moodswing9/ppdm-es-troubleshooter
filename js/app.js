@@ -386,18 +386,23 @@ async function callClaudeAPI(prompt, apiKey) {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'prompt-caching-2024-07-31',
         'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
-        system: (
-          'You are an expert Dell EMC PowerProtect Data Manager (PPDM) and Elasticsearch administrator. '
-          + 'Analyse the provided log excerpt or symptom description. '
-          + 'You MUST call the ppdm_es_diagnosis tool with your structured analysis. '
-          + 'Use real PPDM/ES commands (mminfo, nsradmin, curl ES REST API, etc.) in the actions array.'
-        ),
-        tools: [_AI_SCHEMA],
+        max_tokens: 2048,
+        system: [
+          {
+            type: 'text',
+            text: 'You are an expert Dell EMC PowerProtect Data Manager (PPDM) and Elasticsearch administrator. '
+              + 'Analyse the provided log excerpt or symptom description. '
+              + 'You MUST call the ppdm_es_diagnosis tool with your structured analysis. '
+              + 'Use real PPDM/ES commands (mminfo, nsradmin, curl ES REST API, etc.) in the actions array.',
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
+        tools: [{ ..._AI_SCHEMA, cache_control: { type: 'ephemeral' } }],
         tool_choice: { type: 'tool', name: 'ppdm_es_diagnosis' },
         messages: [{ role: 'user', content: prompt }],
       }),
