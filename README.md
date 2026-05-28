@@ -84,7 +84,7 @@ Paste any PPDM or Elasticsearch log excerpt, error message, or symptom descripti
 | Step | Purpose |
 |:--|:--|
 | 1. **Regex PII redaction** | Strip IPs, emails, and `password=…` style tokens before anything leaves the browser |
-| 2. **Structured diagnosis** | `claude-haiku-4-5-20251001` is forced via tool-calling to return a JSON object: `root_cause`, `severity`, `affected_component`, `actions[]`, `prevention` |
+| 2. **Structured diagnosis** | `claude-haiku-4-5-20251001` is forced via tool-calling to return a JSON object: `root_cause`, `severity`, `affected_component`, `actions[]`, `prevention`. System prompt and tool schema are cached via `anthropic-beta: prompt-caching-2024-07-31` — repeated checks benefit from reduced latency and cost |
 | 3. **Styled card rendering** | Output rendered as cards — severity badge (color-coded), affected component label, copy-pasteable action code blocks, prevention panel |
 
 ### Privacy
