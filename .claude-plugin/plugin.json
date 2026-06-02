@@ -25,5 +25,9 @@
   "components": {
     "skills": ["./skills/ppdm-es-troubleshooter"],
     "commands": ["./.claude/commands"]
+  },
+  "commands": {
+    "es-diagnose": ".claude/commands/es-diagnose.md",
+    "ppdm-check": ".claude/commands/ppdm-check.md"
   }
 }

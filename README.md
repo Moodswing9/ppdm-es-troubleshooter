@@ -113,13 +113,15 @@ Install as a Claude Code plugin to get `/es-diagnose` directly in your terminal:
 npx skills add Moodswing9/ppdm-es-troubleshooter -g
 ```
 
-This registers the skill and command globally so you can run `/es-diagnose` from any Claude Code session.
+This registers the skill and two commands globally.
 
 | Command | What it does |
 |:---|:---|
 | `/es-diagnose "connection refused to elasticsearch:9200"` | Diagnose inline error text |
 | `/es-diagnose /var/log/ppdm/es-error.log` | Analyse a log file |
 | `/es-diagnose es-error.log es-slow.log` | Concatenate multiple log files for combined diagnosis |
+| `/ppdm-check es01.example.com` | Live `/_cluster/health` fetch + AI health summary |
+| `/ppdm-check localhost --port 9200 --user elastic --pass secret` | Authenticated cluster check |
 
 The skill auto-activates in Claude Code when you ask about PPDM Elasticsearch errors, shard allocation, circuit breakers, disk watermarks, or the diagnostic dashboard's architecture — no command needed. Requires `ANTHROPIC_API_KEY` and `pip install anthropic`.
 
