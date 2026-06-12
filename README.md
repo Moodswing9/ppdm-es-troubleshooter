@@ -1,10 +1,10 @@
-<div align="center">
+﻿<div align="center">
 
 # 🔍 PPDM Elasticsearch Troubleshooter
 
 **Interactive diagnostic dashboard for PowerProtect Data Manager Elasticsearch access errors**
 
-[![Version](https://img.shields.io/badge/version-1.3.0-6366f1?style=flat-square)](https://github.com/Moodswing9/ppdm-es-troubleshooter/releases)
+[![Version](https://img.shields.io/badge/version-1.4.0-6366f1?style=flat-square)](https://github.com/Moodswing9/ppdm-es-troubleshooter/releases)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/Moodswing9/ppdm-es-troubleshooter/playwright.yml?branch=master&style=flat-square&label=CI)](https://github.com/Moodswing9/ppdm-es-troubleshooter/actions/workflows/playwright.yml)
 [![Status](https://img.shields.io/badge/status-stable-22c55e?style=flat-square)](#)
