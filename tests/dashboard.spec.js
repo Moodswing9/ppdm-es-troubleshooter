@@ -19,8 +19,9 @@ test.describe('PPDM Elasticsearch Troubleshooter — smoke tests', () => {
   });
 
   test('header shows version metadata for PPDM and Elasticsearch', async ({ page }) => {
-    await expect(page.locator('.header-badge')).toContainText('PPDM');
-    await expect(page.locator('.header-badge')).toContainText('ES');
+    const versionBadge = page.locator('.header-badge', { hasText: 'PPDM' });
+    await expect(versionBadge).toContainText('PPDM');
+    await expect(versionBadge).toContainText('ES');
   });
 
   test('all four health-overview metric cards render', async ({ page }) => {
