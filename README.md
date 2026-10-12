@@ -4,7 +4,7 @@
 
 **Interactive diagnostic dashboard for PowerProtect Data Manager Elasticsearch access errors**
 
-[![Version](https://img.shields.io/badge/version-1.4.0-6366f1?style=flat-square)](https://github.com/Moodswing9/ppdm-es-troubleshooter/releases)
+[![Version](https://img.shields.io/badge/version-1.4.1-6366f1?style=flat-square)](https://github.com/Moodswing9/ppdm-es-troubleshooter/releases)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/Moodswing9/ppdm-es-troubleshooter/playwright.yml?branch=master&style=flat-square&label=CI)](https://github.com/Moodswing9/ppdm-es-troubleshooter/actions/workflows/playwright.yml)
 [![Status](https://img.shields.io/badge/status-stable-22c55e?style=flat-square)](#)
@@ -109,11 +109,18 @@ The diagnosis output includes copy-pasteable PPDM/ES CLI commands (`mminfo`, `ns
 
 Install as a Claude Code plugin to get `/es-diagnose` directly in your terminal:
 
+From a terminal:
+
 ```bash
-npx skills add Moodswing9/ppdm-es-troubleshooter -g
+claude plugin marketplace add Moodswing9/claude-plugins
+claude plugin install ppdm-es-troubleshooter@moodswing9
 ```
 
-This registers the skill and two commands globally.
+This installs `/es-diagnose`, `/ppdm-check` and the skill.
+
+Or inside Claude Code: `/plugin marketplace add Moodswing9/claude-plugins`, then `/plugin install ppdm-es-troubleshooter@moodswing9`.
+
+Only need the knowledge skill, without the slash commands? `npx skills add Moodswing9/ppdm-es-troubleshooter -g` installs just the skill.
 
 | Command | What it does |
 |:---|:---|
