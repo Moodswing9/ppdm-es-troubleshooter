@@ -1,17 +1,15 @@
 {
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "ppdm-es-troubleshooter",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "PPDM Elasticsearch diagnostics in your terminal — /es-diagnose delivers structured root-cause analysis with severity, remediation commands, and prevention guidance via Claude Haiku. Browser dashboard included.",
   "author": {
     "name": "Moodswing9",
     "url": "https://github.com/Moodswing9"
   },
   "homepage": "https://github.com/Moodswing9/ppdm-es-troubleshooter",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Moodswing9/ppdm-es-troubleshooter.git"
-  },
-  "license": "SEE LICENSE IN LICENSE",
+  "repository": "https://github.com/Moodswing9/ppdm-es-troubleshooter",
+  "license": "MIT",
   "keywords": [
     "dell-emc",
     "ppdm",
@@ -22,12 +20,7 @@
     "backup",
     "claude-skill"
   ],
-  "components": {
-    "skills": ["./skills/ppdm-es-troubleshooter"],
-    "commands": ["./.claude/commands"]
-  },
-  "commands": {
-    "es-diagnose": ".claude/commands/es-diagnose.md",
-    "ppdm-check": ".claude/commands/ppdm-check.md"
-  }
+  "commands": [
+    "./.claude/commands/"
+  ]
 }

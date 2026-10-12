@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.1] — 2026-10-12
+### Fixed
+- Claude Code plugin manifest passes `claude plugin validate`: `repository` is a URL, `license` is MIT and the unsupported `components` field is gone; the commands in `.claude/commands/` are now declared, so they load
+- Install docs: the plugin is now installed from the Moodswing9 marketplace (`claude plugin marketplace add Moodswing9/claude-plugins`, then `claude plugin install ppdm-es-troubleshooter@moodswing9`). The previously documented `npx skills add` installs only the skill, not the slash commands
+
+### Added
+- CI validates the plugin manifest on every push and pull request
+
 ## [1.4.0] — 2026-06-02
 ### Added
 - `/ppdm-check` — live Elasticsearch cluster health check: fetches cluster health, nodes, shards and allocation, then returns a GREEN/YELLOW/RED assessment with remediation commands via Claude Haiku 4.5
