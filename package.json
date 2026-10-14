@@ -1,6 +1,6 @@
 {
   "name": "ppdm-es-troubleshooter",
-  "version": "1.0.0",
+  "version": "1.4.1",
   "private": true,
   "description": "Interactive diagnostic dashboard for PowerProtect Data Manager Elasticsearch access errors",
   "scripts": {
