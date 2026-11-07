@@ -4,6 +4,9 @@
 ### Security
 - `follow-redirects` → 1.16.2 (dev, via the `http-server` used for tests): sensitive headers could be kept on cross-realm redirects. `npm audit`: 0 vulnerabilities
 
+### Changed
+- `@playwright/test` 1.59 → 1.65: GitHub's `ubuntu-latest` runner moved to Ubuntu 26.04, where the older Playwright could not install its browsers, so CI failed before running any tests
+
 ## [1.4.1] — 2026-10-12
 ### Fixed
 - Claude Code plugin manifest passes `claude plugin validate`: `repository` is a URL, `license` is MIT and the unsupported `components` field is gone; the commands in `.claude/commands/` are now declared, so they load
