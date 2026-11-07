@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "ppdm-es-troubleshooter",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "PPDM Elasticsearch diagnostics in your terminal — /es-diagnose delivers structured root-cause analysis with severity, remediation commands, and prevention guidance via Claude Haiku. Browser dashboard included.",
   "author": {
     "name": "Moodswing9",

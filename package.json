@@ -1,6 +1,6 @@
 {
   "name": "ppdm-es-troubleshooter",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "private": true,
   "description": "Interactive diagnostic dashboard for PowerProtect Data Manager Elasticsearch access errors",
   "scripts": {
@@ -11,7 +11,7 @@
     "test:report": "playwright show-report"
   },
   "devDependencies": {
-    "@playwright/test": "^1.48.0",
+    "@playwright/test": "^1.65.0",
     "http-server": "^14.1.1"
   }
 }
