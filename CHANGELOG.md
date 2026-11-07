@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.2] — 2026-11-07
+### Security
+- `follow-redirects` → 1.16.2 (dev, via the `http-server` used for tests): sensitive headers could be kept on cross-realm redirects. `npm audit`: 0 vulnerabilities
+
 ## [1.4.1] — 2026-10-12
 ### Fixed
 - Claude Code plugin manifest passes `claude plugin validate`: `repository` is a URL, `license` is MIT and the unsupported `components` field is gone; the commands in `.claude/commands/` are now declared, so they load
