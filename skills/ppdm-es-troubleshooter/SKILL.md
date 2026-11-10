@@ -5,7 +5,7 @@ description: PPDM Elasticsearch diagnostics — 10 check modules, 7 guided error
 
 # PPDM ES Troubleshooter
 
-Zero-install browser diagnostic tool for PowerProtect Data Manager Elasticsearch errors. Open `index.html` — no build step, no backend, no npm required. Diagnostic checks are **simulated**; only the live `/_cluster/health` fetch is real. AI Diagnose calls Claude Haiku 4.5 directly from the browser via tool-calling.
+Zero-install browser diagnostic tool for PowerProtect Data Manager Elasticsearch errors. Open `index.html` — no build step, no backend, no npm required. Diagnostic checks are **simulated**; only the live `/_cluster/health` fetch is real. AI Diagnose calls Claude Haiku 5.5 directly from the browser via tool-calling.
 
 ## Trigger
 
@@ -93,7 +93,7 @@ Each workflow has `severity`, `title`, `description`, and `steps[]` — each ste
 
 ## AI Diagnose
 
-Calls `claude-haiku-4-5-20251001` via the Anthropic REST API directly from the browser.
+Calls `claude-haiku-5-5` via the Anthropic REST API directly from the browser.
 Required header: `anthropic-dangerous-direct-browser-access: true`
 
 ### Tool Schema — ppdm_es_diagnosis
@@ -139,7 +139,7 @@ Cards rendered via `innerHTML`:
 | `refreshMetrics()` | Fetch `GET /_cluster/health` live, update 4 health metric cards |
 | `exportReport()` | Generate + download JSON snapshot of all check results |
 | `redactPII(text)` | Synchronous regex redaction before any API call |
-| `callClaudeAPI(prompt, apiKey)` | Tool-calling request to Haiku 4.5, returns `toolUse.input` object |
+| `callClaudeAPI(prompt, apiKey)` | Tool-calling request to Haiku 5.5, returns `toolUse.input` object |
 | `_severityColor(sev)` | Returns CSS color string for severity badge |
 | `_renderDiagnosisCards(d)` | Renders structured diagnosis as cards into `#aiOutputBody` |
 | `runAiDiagnose()` | Orchestrates: redaction → API call → `_renderDiagnosisCards` |

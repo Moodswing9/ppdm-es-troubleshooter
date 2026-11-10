@@ -4,13 +4,13 @@
 
 **Interactive diagnostic dashboard for PowerProtect Data Manager Elasticsearch access errors**
 
-[![Version](https://img.shields.io/badge/version-1.4.2-6366f1?style=flat-square)](https://github.com/Moodswing9/ppdm-es-troubleshooter/releases)
+[![Version](https://img.shields.io/badge/version-1.5.0-6366f1?style=flat-square)](https://github.com/Moodswing9/ppdm-es-troubleshooter/releases)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/Moodswing9/ppdm-es-troubleshooter/playwright.yml?branch=master&style=flat-square&label=CI)](https://github.com/Moodswing9/ppdm-es-troubleshooter/actions/workflows/playwright.yml)
 [![Status](https://img.shields.io/badge/status-stable-22c55e?style=flat-square)](#)
 [![No Dependencies](https://img.shields.io/badge/dependencies-none-f59e0b?style=flat-square)](#)
 [![Open in Browser](https://img.shields.io/badge/open-in%20browser-0ea5e9?style=flat-square)](#getting-started)
-[![Claude Haiku](https://img.shields.io/badge/AI-Claude%20Haiku%204.5-f59e0b?style=flat-square)](#-ai-diagnose-claude-haiku-45)
+[![Claude Haiku](https://img.shields.io/badge/AI-Claude%20Haiku%205.5-f59e0b?style=flat-square)](#-ai-diagnose-claude-haiku-55)
 
 </div>
 
@@ -71,11 +71,11 @@ Each workflow delivers **severity-rated**, step-by-step remediation with one-cli
 | 📥 JSON Export | Download a full diagnostic snapshot as `.json` |
 | 🖨️ Print / PDF | Dedicated print stylesheet for clean report output |
 | ⚡ Live ES Check | Fetches `/_cluster/health` directly from your ES instance — updates the health metrics cards in real time |
-| 🤖 AI Diagnose | One-click AI analysis powered by **Claude Haiku 4.5** — structured JSON output rendered as styled cards: severity badge, affected component, click-to-copy remediation commands, and prevention guidance (requires Anthropic API key) |
+| 🤖 AI Diagnose | One-click AI analysis powered by **Claude Haiku 5.5** — structured JSON output rendered as styled cards: severity badge, affected component, click-to-copy remediation commands, and prevention guidance (requires Anthropic API key) |
 
 ---
 
-## 🤖 AI Diagnose (Claude Haiku 4.5)
+## 🤖 AI Diagnose (Claude Haiku 5.5)
 
 Paste any PPDM or Elasticsearch log excerpt, error message, or symptom description into the **AI Diagnose** panel and get a structured analysis back — root cause, severity, affected component, exact remediation commands, and prevention guidance.
 
@@ -84,7 +84,7 @@ Paste any PPDM or Elasticsearch log excerpt, error message, or symptom descripti
 | Step | Purpose |
 |:--|:--|
 | 1. **Regex PII redaction** | Strip IPs, emails, and `password=…` style tokens before anything leaves the browser |
-| 2. **Structured diagnosis** | `claude-haiku-4-5-20251001` is forced via tool-calling to return a JSON object: `root_cause`, `severity`, `affected_component`, `actions[]`, `prevention`. System prompt and tool schema are cached via `anthropic-beta: prompt-caching-2024-07-31` — repeated checks benefit from reduced latency and cost |
+| 2. **Structured diagnosis** | `claude-haiku-5-5` is forced via tool-calling to return a JSON object: `root_cause`, `severity`, `affected_component`, `actions[]`, `prevention`. System prompt and tool schema are prompt-cached (`cache_control`) — repeated checks benefit from reduced latency and cost |
 | 3. **Styled card rendering** | Output rendered as cards — severity badge (color-coded), affected component label, copy-pasteable action code blocks, prevention panel |
 
 ### Privacy

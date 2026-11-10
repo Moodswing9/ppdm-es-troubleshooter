@@ -78,7 +78,7 @@ If the fetch fails with a connection error, stop with:
 
 ## Step 3 — AI health summary
 
-Use the Bash tool to pipe the JSON output into Claude Haiku 4.5:
+Use the Bash tool to pipe the JSON output into Claude Haiku 5.5:
 
 ```bash
 python3 - << 'PYEOF'
@@ -104,8 +104,11 @@ SCHEMA = {
 
 client = anthropic.Anthropic()
 resp = client.messages.create(
-    model='claude-haiku-4-5-20251001',
+    model='claude-haiku-5-5',
     max_tokens=1024,
+    # Haiku 5.5 thinks by default; keep it off for fast diagnoses (a forced tool call skips it anyway).
+    # extra_body works with any installed anthropic version.
+    extra_body={'thinking': {'type': 'disabled'}, 'output_config': {'effort': 'medium'}},
     system=(
         'You are an expert Dell EMC PPDM and Elasticsearch administrator. '
         'Analyse the provided cluster health JSON and call the es_health_check tool with your assessment. '
