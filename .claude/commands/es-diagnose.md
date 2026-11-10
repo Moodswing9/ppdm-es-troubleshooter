@@ -1,5 +1,5 @@
 ---
-description: Diagnose a PPDM Elasticsearch error or log excerpt — structured root-cause analysis with severity, affected component, remediation commands, and prevention via Claude Haiku 4.5
+description: Diagnose a PPDM Elasticsearch error or log excerpt — structured root-cause analysis with severity, affected component, remediation commands, and prevention via Claude Haiku 5.5
 argument-hint: "<error-text-or-file-path>"
 allowed-tools: ["Bash", "Read"]
 ---
@@ -18,7 +18,7 @@ The user wants to diagnose: $ARGUMENTS
 If `$ARGUMENTS` is empty, stop:
 > "Provide an error message or log file path — example: `/es-diagnose 'connection refused to 9200'` or `/es-diagnose /var/log/ppdm/es-error.log` or `/es-diagnose es-error.log es-slow.log`"
 
-## Step 2 — Redact PII and call Claude Haiku 4.5
+## Step 2 — Redact PII and call Claude Haiku 5.5
 
 Use the Bash tool to run the following Python script. Substitute `INPUT_TEXT` with the actual error text or file contents from Step 1:
 
@@ -56,8 +56,11 @@ SCHEMA = {
 
 client = anthropic.Anthropic()
 resp = client.messages.create(
-    model='claude-haiku-4-5-20251001',
+    model='claude-haiku-5-5',
     max_tokens=1024,
+    # Haiku 5.5 thinks by default; keep it off for fast diagnoses (a forced tool call skips it anyway).
+    # extra_body works with any installed anthropic version.
+    extra_body={'thinking': {'type': 'disabled'}, 'output_config': {'effort': 'medium'}},
     system=(
         'You are an expert Dell EMC PowerProtect Data Manager (PPDM) and Elasticsearch administrator. '
         'Analyse the provided log excerpt or symptom description. '

@@ -4,7 +4,7 @@
 
 A zero-dependency, zero-install browser diagnostic tool for PPDM Elasticsearch errors. Open `index.html` — that's it. No build step, no npm, no backend.
 
-The app simulates diagnostic checks, guides engineers through error-pattern workflows, and optionally calls Claude Haiku 4.5 for AI-assisted root cause analysis.
+The app simulates diagnostic checks, guides engineers through error-pattern workflows, and optionally calls Claude Haiku 5.5 for AI-assisted root cause analysis.
 
 ## Running Locally
 
@@ -61,7 +61,7 @@ Settings (except `anthropicKey`) are persisted in localStorage under `ppdmEsTrou
 | `refreshMetrics()` | Updates the 4 health-overview metric cards |
 | `exportReport()` | Generates and downloads a JSON snapshot of all check results |
 | `redactPII(text)` | Synchronous regex — strips IPs, emails, credential patterns |
-| `callClaudeAPI(prompt, apiKey)` | Calls `claude-haiku-4-5-20251001` via Anthropic REST API |
+| `callClaudeAPI(prompt, apiKey)` | Calls `claude-haiku-5-5` via Anthropic REST API |
 | `runAiDiagnose()` | Orchestrates redaction → Claude call → renders output |
 
 ## Dark Mode
@@ -76,7 +76,7 @@ Playwright tests check `document.documentElement.getAttribute('data-theme')` —
 - Key lives in `state.settings.anthropicKey` (in-memory, never persisted)
 - Uses `anthropic-dangerous-direct-browser-access: true` header — required for browser-to-Anthropic direct calls
 - PII redacted synchronously before any network call
-- Model: `claude-haiku-4-5-20251001`, `max_tokens: 1024`
+- Model: `claude-haiku-5-5`, thinking off, `effort: "medium"`, `max_tokens: 2048` (browser) / 1024 (slash commands); API version `2026-10-21`
 
 ## Key Constraints
 

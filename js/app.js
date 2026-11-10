@@ -375,23 +375,15 @@ const _AI_SCHEMA = {
   },
 };
 
-async function callClaudeAPI(prompt, apiKey) {
-  const controller = new AbortController();
-  const timeoutId  = setTimeout(() => controller.abort(), 30_000);
-  try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      signal: controller.signal,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'prompt-caching-2024-07-31',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+// Claude Haiku 5.5 thinks by default; a forced tool call skips thinking anyway,
+// and thinking is off explicitly so diagnoses stay fast (allowed at effort high
+// or below). Prompt caching is generally available, so no beta header is needed.
+function buildDiagnosisRequest(prompt) {
+  return {
+        model: 'claude-haiku-5-5',
         max_tokens: 2048,
+        thinking: { type: 'disabled' },
+        output_config: { effort: 'medium' },
         system: [
           {
             type: 'text',
@@ -405,18 +397,42 @@ async function callClaudeAPI(prompt, apiKey) {
         tools: [{ ..._AI_SCHEMA, cache_control: { type: 'ephemeral' } }],
         tool_choice: { type: 'tool', name: 'ppdm_es_diagnosis' },
         messages: [{ role: 'user', content: prompt }],
-      }),
+  };
+}
+
+function parseDiagnosisResponse(data) {
+  if (data.stop_reason === 'refusal') {
+    throw new Error('Claude declined to diagnose this input. Remove unrelated or sensitive content and try again.');
+  }
+  const toolUse = data.content?.find(b => b.type === 'tool_use');
+  if (toolUse?.input) return toolUse.input;
+  // Fallback: the model returned text instead of a tool call. Read text blocks
+  // by type; a response can start with a thinking block.
+  const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+  return { root_cause: text || '(no response)',
+           severity: 'Unknown', affected_component: 'Unknown', actions: [], prevention: '' };
+}
+
+async function callClaudeAPI(prompt, apiKey) {
+  const controller = new AbortController();
+  const timeoutId  = setTimeout(() => controller.abort(), 30_000);
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      signal: controller.signal,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2026-10-21',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify(buildDiagnosisRequest(prompt)),
     });
     if (!resp.ok) {
       const err = await resp.text();
       throw new Error(`Claude API ${resp.status}: ${err}`);
     }
-    const data = await resp.json();
-    const toolUse = data.content?.find(b => b.type === 'tool_use');
-    if (toolUse?.input) return toolUse.input;
-    // Fallback — model returned text instead of tool call
-    return { root_cause: data.content?.[0]?.text || '(no response)',
-             severity: 'Unknown', affected_component: 'Unknown', actions: [], prevention: '' };
+    return parseDiagnosisResponse(await resp.json());
   } catch (err) {
     if (err.name === 'AbortError') throw new Error('Request timed out after 30 seconds.');
     throw err;
