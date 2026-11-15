@@ -126,3 +126,75 @@ test.describe('PPDM Elasticsearch Troubleshooter — smoke tests', () => {
     expect(results[2]).toBe('Authorization: Basic [REDACTED]');
   });
 });
+
+// Regression tests for CodeQL js/incomplete-html-attribute-sanitization:
+// AI output and API error bodies are untrusted and must never become markup.
+test.describe('HTML escaping of untrusted content', () => {
+  // Breaks out of a double-quoted attribute, a single-quoted one, and element content.
+  const PAYLOAD = `x" onmouseover="window.__pwned=1" data-x="' onfocus='window.__pwned=1' <img src=x onerror="window.__pwned=1" class="pwned">`;
+
+  async function runAiDiagnoseWith(page, route) {
+    await page.route('https://api.anthropic.com/**', route);
+    await page.locator('#aiToggleBtn').click();   // panel starts collapsed
+    await page.evaluate(() => {
+      state.settings.anthropicKey = 'sk-ant-test';
+      document.getElementById('aiLogInput').value = 'ERROR something failed';
+    });
+    await page.evaluate(() => runAiDiagnose());
+    await expect(page.locator('#aiOutput')).toBeVisible();
+  }
+
+  async function expectNoInjection(page) {
+    const body = page.locator('#aiOutputBody');
+    await expect(body.locator('img, script, iframe, .pwned')).toHaveCount(0);
+    await expect(body.locator('[onmouseover], [onfocus], [onerror], [data-x]')).toHaveCount(0);
+    expect(await page.evaluate(() => window.__pwned)).toBeUndefined();
+  }
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+  });
+
+  test('escapeHtml escapes all five HTML-significant characters', async ({ page }) => {
+    const out = await page.evaluate(() => escapeHtml(`& < > " '`));
+    expect(out).toBe('&amp; &lt; &gt; &quot; &#39;');
+    expect(await page.evaluate(() => escapeHtml(null))).toBe('');
+  });
+
+  test('hostile AI diagnosis renders as text, including inside data-cmd', async ({ page }) => {
+    await runAiDiagnoseWith(page, route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        stop_reason: 'tool_use',
+        content: [{ type: 'tool_use', name: 'diagnose', input: {
+          severity: PAYLOAD, affected_component: PAYLOAD, root_cause: PAYLOAD,
+          actions: [PAYLOAD], prevention: PAYLOAD,
+        } }],
+      }),
+    }));
+    await expectNoInjection(page);
+    const cmd = page.locator('#aiOutputBody .copy-cmd');
+    await expect(cmd).toHaveCount(1);
+    await expect(cmd).toHaveAttribute('data-cmd', PAYLOAD);   // round-trips exactly
+    await expect(cmd).toHaveText(PAYLOAD);
+  });
+
+  test('hostile API error body renders as text', async ({ page }) => {
+    await runAiDiagnoseWith(page, route => route.fulfill({
+      status: 400, contentType: 'text/plain', body: PAYLOAD,
+    }));
+    await expectNoInjection(page);
+    await expect(page.locator('#aiOutputBody')).toContainText(PAYLOAD);
+  });
+
+  test('data.js text with angle brackets is shown literally', async ({ page }) => {
+    // errorPatterns contains "GET /<index>/_mapping"; unescaped, <index> vanished as a tag.
+    const pattern = await page.evaluate(() =>
+      Object.keys(errorPatterns).find(k =>
+        [...errorPatterns[k].steps, ...errorPatterns[k].commands].some(s => s.includes('<index>'))));
+    expect(pattern).toBeTruthy();
+    await page.locator(`[data-pattern="${pattern}"]`).click();
+    await expect(page.locator('#remediationActions')).toContainText('/<index>/_mapping');
+  });
+});

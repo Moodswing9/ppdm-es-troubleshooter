@@ -27,6 +27,21 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 function $(id)   { return document.getElementById(id); }
 function ts()    { return new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC'; }
 
+/**
+ * Escape text for use in HTML element content AND quoted attribute values.
+ * Every value interpolated into an innerHTML template must go through this,
+ * including our own data.js text: AI output, API error bodies and future
+ * data edits are all untrusted as far as the DOM is concerned.
+ */
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function addLog(message, type = 'info') {
   const viewer = $('logViewer');
   if (!viewer) return;
@@ -153,17 +168,17 @@ function buildResultHTML(scenario, critical, hasIssue) {
       <div class="check-row">
         <span class="check-row-icon">${iconMap[c.status] || '❓'}</span>
         <div class="check-row-body">
-          <div class="check-row-name">${c.name}</div>
-          <div class="check-row-detail ${colorMap[c.status] || ''}">${c.detail}</div>
+          <div class="check-row-name">${escapeHtml(c.name)}</div>
+          <div class="check-row-detail ${colorMap[c.status] || ''}">${escapeHtml(c.detail)}</div>
         </div>
-        <span class="severity-indicator severity-${sevMap[c.status] || 'low'}">${c.status.toUpperCase()}</span>
+        <span class="severity-indicator severity-${sevMap[c.status] || 'low'}">${escapeHtml(String(c.status).toUpperCase())}</span>
       </div>`;
   });
 
   if (scenario.remediation.length) {
     html += `<div class="section-label" style="margin-top:16px;">Recommended Actions</div>`;
     scenario.remediation.forEach((action, i) => {
-      html += `<div class="remediation-step"><span class="step-num">${i + 1}.</span><span>${action}</span></div>`;
+      html += `<div class="remediation-step"><span class="step-num">${i + 1}.</span><span>${escapeHtml(action)}</span></div>`;
     });
   }
   return html;
@@ -241,14 +256,14 @@ function selectErrorPattern(pattern) {
   step3.style.opacity = '1';
 
   const sevLabel = { critical: 'severity-critical', high: 'severity-high', medium: 'severity-medium', low: 'severity-low' };
-  const steps = data.steps.map(s => `<li style="margin: 7px 0;">${s}</li>`).join('');
+  const steps = data.steps.map(s => `<li style="margin: 7px 0;">${escapeHtml(s)}</li>`).join('');
   const cmds  = data.commands.map(c => `
-    <div class="code-block" onclick="copyToClipboard(this)" data-cmd="${c.replace(/"/g, '&quot;')}">${c}</div>`).join('');
+    <div class="code-block" onclick="copyToClipboard(this)" data-cmd="${escapeHtml(c)}">${escapeHtml(c)}</div>`).join('');
 
   $('remediationActions').innerHTML = `
     <div style="margin-bottom:14px;">
-      <span class="severity-indicator ${sevLabel[data.severity] || 'severity-low'}">${data.severity.toUpperCase()} SEVERITY</span>
-      <h3 style="margin-top:10px; font-size:1.05rem;">${data.title}</h3>
+      <span class="severity-indicator ${sevLabel[data.severity] || 'severity-low'}">${escapeHtml(String(data.severity).toUpperCase())} SEVERITY</span>
+      <h3 style="margin-top:10px; font-size:1.05rem;">${escapeHtml(data.title)}</h3>
     </div>
     <div class="section-label">Resolution Steps</div>
     <ol style="padding-left:20px; margin-bottom:16px;">${steps}</ol>
@@ -276,7 +291,7 @@ function updateWorkflowStep2(type, critical, hasIssue) {
     container.appendChild(entry);
   }
   entry.style.cssText = `margin:5px 0; padding:8px 12px; background:${color}18; border-radius:8px; border-left:3px solid ${color};`;
-  entry.innerHTML = `<strong>${label}:</strong><span style="color:${color}; font-weight:700; margin-left:6px;">${status}</span>`;
+  entry.innerHTML = `<strong>${escapeHtml(label)}:</strong><span style="color:${color}; font-weight:700; margin-left:6px;">${status}</span>`;
 }
 
 /* ── Export ───────────────────────────────────────────────── */
@@ -447,11 +462,13 @@ function _severityColor(sev) {
 }
 
 function _renderDiagnosisCards(d) {
-  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const esc = escapeHtml;
   const sev = d.severity || 'Unknown';
   const color = _severityColor(sev);
 
-  const actionsHtml = (d.actions || []).map((a, i) => `
+  // d comes from model output: don't trust its shape either.
+  const actions = Array.isArray(d.actions) ? d.actions : [];
+  const actionsHtml = actions.map((a, i) => `
     <div style="display:flex; gap:8px; align-items:flex-start; margin-bottom:6px;">
       <span style="min-width:20px; font-weight:600; color:var(--muted)">${i + 1}.</span>
       <code class="copy-cmd" style="
@@ -521,7 +538,7 @@ async function runAiDiagnose() {
     addLog('AI Diagnose complete.', 'ok');
   } catch (err) {
     addLog(`AI Diagnose error: ${err.message}`, 'error');
-    $('aiOutputBody').innerHTML = `<p style="color:var(--danger)">Error: ${err.message}</p>`;
+    $('aiOutputBody').innerHTML = `<p style="color:var(--danger)">Error: ${escapeHtml(err.message)}</p>`;
     $('aiOutput').style.display = 'block';
   } finally {
     btn.disabled = false;
